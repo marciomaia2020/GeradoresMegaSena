@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Combinações - Mega Sena</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS para exportação Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+	
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1B9A67',
+                        'mega-green': '#1B9A67',
+                        'mega-light-green': '#4CAF50',
+                        'mega-dark-green': '#0D7744',
+                        'mega-cream': '#F1F8E9'
+                    }
+                }
+            },
+            darkMode: 'class'
+        }
+    </script>
+<style>
+ body, html {
+        height: 100%;
+        margin: 0;
+    }
+	
+	 .intro{
+	    font-weight: 12px;
+		color: red;
+		border: 2px solid #e9ecef;
+	}
+
+    .menu-centro {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 0;
+        gap: 2rem;
+    }
+
+    .menu-analises {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .menu-numeros {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.5rem;
+        max-width: 600px;
+    }
+
+    .link-analise {
+        text-decoration: none;
+        color: black;
+        padding: 12px 20px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        background-color: #f8f9fa;
+        border: 2px solid #e9ecef;
+        font-weight: 600;
+        text-align: center;
+        min-width: 180px;
+        display: block;
+    }
+	   .link-analise1 {
+        text-decoration: none;
+        color: #1B9A67;
+        padding: 12px 20px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        background-color: #f8f9fa;
+        border: 2px solid #e9ecef;
+        font-weight: 600;
+        text-align: center;
+        min-width: 180px;
+        display: block;
+    }
+
+    .link-numero {
+        text-decoration: none;
+        color: black;
+        padding: 8px 12px;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+        background-color: #f8f9fa;
+        border: 2px solid #e9ecef;
+        font-weight: 600;
+        text-align: center;
+        min-width: 40px;
+        display: block;
+    }
+
+    .link-analise:hover,
+    .link-numero:hover {
+        animation: alternaCoresMega 1s infinite alternate;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+	.link-analise1:hover,
+    .link-numero:hover {
+        animation: alternaCoresMega 1s infinite alternate;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    @keyframes alternaCoresMega {
+        0% {
+            background-color: #F1F8E9;
+        }
+        100% {
+            background-color: #4CAF50;
+        }
+    }
+
+    /* Dark mode styles */
+    .dark .link-analise,
+    .dark .link-numero {
+        background-color: #374151;
+        border-color: #4b5563;
+        color: #f9fafb;
+    }
+
+    .dark .link-analise:hover,
+    .dark .link-numero:hover {
+        animation: alternaCoresMegaDark 1s infinite alternate;
+    }
+
+    @keyframes alternaCoresMegaDark {
+        0% {
+            background-color: #0D4D2A;
+        }
+        100% {
+            background-color: #1B9A67;
+        }
+    }
+</style>
+
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen">
+    <!-- Detecção de tema escuro -->
+    <script>
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+    </script>
+
+    <!-- Layout com sidebar e conteúdo principal -->
+    <div class="flex flex-col md:flex-row">
+        <!-- Barra lateral com links -->
+        <div class="w-full md:w-64 bg-gray-100 dark:bg-gray-800 p-4 md:min-h-screen">
+            <div class="mb-6">
+                <h3 class="text-lg font-bold mb-3 text-primary dark:text-green-400">Ferramentas Mega Sena</h3>
+                <div class="space-y-1">
+                    <a href="./index.html" class="block py-1 px-2 rounded bg-primary/10 text-primary dark:text-green-400 font-bold">Gerador de Combinações</a>
+                    
+					
+					<div class="mt-3 mb-1 text-sm font-bold text-gray-600 dark:text-gray-400">ORDEM DE ANÁLISE 1</div>
+					<a href="./ResultadosDigitosMegaSena/index.html" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">A - Resultados Dígitos </a>
+					<a href="./AnalisePorCombinacao/" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">1- Análise por Combinação</a>
+                    <a href="./AnalisadorCombinacoesJogosMega/index.html" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">2 - Analisador Combinações Jogos</a>
+                    <a href="./CombinacaoUmMegaSena/index.html" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">3 - Combinação Um</a>
+                    <a href="./MegaSenaConferidor/index.html" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">4 - Mega Sena Conferidor</a>
+					<a href="./MegaSenaConferidor1/index.html" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">5 - Mega Sena Conferidor (Específico)</a>
+
+					
+					
+					<div class="mt-3 mb-1 text-sm font-bold text-gray-600 dark:text-gray-400">ORDEM DE ANÁLISE</div>
+                    <a href="./CombinacaoDigitosMegaSena/index.html" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Combinação Dígitos II *</a>
+					<a href="https://anacombinmegasenaresult.netlify.app/" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Análise de Combinações *</a>
+                    <a href="./ConfAutoMaisQue1MegaSena/index.html" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Conferidor Automático +1 * </a>
+					<a href="./ResumoMegaSena/index.html" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Resumo *</a>
+					<a href="https://resumomegasena1.netlify.app/" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Resumo I</a>
+                    <a href="./MegaSenaEstrategias/index.html" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Estratégias I *</a>
+                    <a href="./GeradorFinalMegaSena/index.html" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Gerador Final *</a>
+					
+					<div class="mt-3 mb-1 text-sm font-bold text-gray-600 dark:text-gray-400">DÍGITOS</div>
+                    <a href="./GeradorBaseadoEmDigitosMegaSena/index.html" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Baseado em Dígitos</a>
+                    
+					<div class="mt-3 mb-1 text-sm font-bold text-gray-600 dark:text-gray-400">CALCULADORA</div>
+                    <a href="./CalculadoraCustoMega/index.html" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Calculadora de Custos</a>
+
+					
+                    <div class="mt-3 mb-1 text-sm font-bold text-gray-600 dark:text-gray-400">ESTRATÉGIAS</div>
+                    <a href="./SenaQuinaTernas/index.html" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Sena Quina & Ternas</a>
+                    
+                    <div class="mt-3 mb-1 text-sm font-bold text-gray-600 dark:text-gray-400">CONFERIDORES</div>
+                    <a href="./ConfAuto1MegaSena/index.html" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Conferidor Automático 1</a>
+                    
+                    <div class="mt-3 mb-1 text-sm font-bold text-gray-600 dark:text-gray-400">ANÁLISES</div>
+                    <a href="./MegaSenaDesdobramento/index.html" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Desdobramento</a>
+                    <a href="./ResultadosAlteradosMegaSena/index.html" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Resultados Alterados</a>
+                    
+                    <div class="mt-3 mb-1 text-sm font-bold text-gray-600 dark:text-gray-400">OUTROS</div>
+                    <a href="./MegaSenaCalculadora/index.html" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Calculadora</a>
+                    <a href="./MegaSenaComissao/index.html" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Comissão</a>
+                    <a href="./MegaSenaCuriosidades/index.html" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Curiosidades</a>
+                    <a href="./MegaSenaIA/index.html" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Inteligência Artificial</a>
+                    
+					<div class="mt-3 mb-1 text-sm font-bold text-gray-600 dark:text-gray-400">Outras Modalidades</div>
+                    <a href="./Lotofacil.html" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Lotofácil</a>
+                    <a href="./Quina.html" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Quina</a>
+					<a href="https://apostenasmodalidades.netlify.app" target="_blank" class="block py-1 px-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Aposte nas Modalidades</a>
+
+				</div>
+            </div>
+        </div>
+		
+		
+
+        <!-- Conteúdo principal -->
+        <div class="flex-1 p-4">
+            <h1 class="text-2xl font-bold text-center mb-6 text-primary">Gerador de Combinações - Mega Sena (TODAS as combinações)</h1>
+            
+			<hr />
+				<div class="menu-centro">
+					<!-- Primeira linha: Links especiais -->
+					<div class="menu-analises">
+						<a href="index-pares-impares-mega.html/" target="_blank" class="link-analise">Pares Vs Ímpares</a>
+						<a href="index-combinacoes-melhores-mega.html/" target="_blank" class="link-analise">Combinações (Melhores)</a>
+						<a href="index-combinacoes-todas-mega.html/" target="_blank" class="link-analise1">Combinações (Todas) *</a>
+					    <a href="index-combinacoes-analise-mega.html/" target="_blank" class="link-analise1">Combinações (Análise) *</a>
+					</div>
+					
+					<!-- Segunda linha: Números 6-15 (Mega Sena vai de 6 a 15 números) -->
+					
+					<div class="menu-numeros">
+					    <p class="intro">Combinações</p>
+						<a href="index6.html/" target="_blank" class="link-numero">6</a>
+						<a href="index7.html/" target="_blank" class="link-numero">7</a>
+						<a href="index8.html/" target="_blank" class="link-numero">8</a>
+						<a href="index9.html/" target="_blank" class="link-numero">9</a>
+						<a href="index10.html" target="_blank" class="link-numero">10</a>
+						<a href="index11.html" target="_blank" class="link-numero">11</a>
+						<a href="index12.html/" target="_blank" class="link-numero">12</a>
+						<a href="index13.html/" target="_blank" class="link-numero">13</a>
+						<a href="index14.html/" target="_blank" class="link-numero">14</a>
+						<a href="index15.html/" target="_blank" class="link-numero">15</a>
+					</div>
+					<!-- Terceira linha: Gerador Pro -->
+				
+					<div class="menu-numeros">
+						<p class="intro">Gerador Pro</p>
+						<a href="gc6.html/" target="_blank" class="link-numero">6</a>
+						<a href="gc7.html/" target="_blank" class="link-numero">7</a>
+						<a href="gc8.html/" target="_blank" class="link-numero">8</a>
+						<a href="gc9.html/" target="_blank" class="link-numero">9</a>
+						<a href="gc10.html/" target="_blank" class="link-numero">10</a>
+						<a href="gc11.html/" target="_blank" class="link-numero">11</a>
+						<a href="gc12.html/" target="_blank" class="link-numero">12</a>
+						<a href="gc13.html/" target="_blank" class="link-numero">13</a>
+						<a href="gc14.html/" target="_blank" class="link-numero">14</a>
+						<a href="gc15.html/" target="_blank" class="link-numero">15</a>
+					</div>
+				</div>
+			<hr />
+			
+			<!-- Seção de API e dados atualizados -->
+			<div class="bg-mega-cream dark:bg-gray-800 p-4 rounded-lg mb-6">
+				<h3 class="text-lg font-bold text-primary mb-3">🎯 Dados Atualizados da API da Caixa</h3>
+				<div id="apiData" class="text-sm">
+					<p class="text-gray-600 dark:text-gray-400">Carregando dados do último concurso...</p>
+				</div>
+			</div>
+
+<p>  
+        1 - Primeiro, pegue os resultados em: 
+        <a href="https://geradormegasena.netlify.app/resultadosdigitosdigital/" target="_blank" class="text-primary hover:underline">   Resultados da Mega Sena </a>
+</p><br />
+<p>
+        2- Segundo, pegue a quantidade de dígitos usado para o sorteio:  
+  <a href="#" target="_blank"><img src="https://i.postimg.cc/vmc8BLg1/Prt-Scr-capture.jpg" alt="Resultados da Mega Sena" width="900" height="800" class="border border-primary/20 rounded"></a>
+</p><br />
+<p>
+        3- Terceiro, na seção <span style="color: #1B9A67; font-weight: bold;">Combinações</span> observe qual o total de dígitos usados e acesse o número na seção conforme os dígitos usados anteriormente:  
+    <a href="#" target="_blank">
+        <img src="https://i.postimg.cc/g0ZJsHYC/Prt-Scr-capture.jpg" alt="Resultados da Mega Sena" width="900" height="800" class="border border-primary/20 rounded"></a>
+</p><br />
+<p>
+        4 -  Quarto, na seção <span style="color: #0D7744; font-weight: bold;">Gerar todas</span> adicione ali os dígitos e clique em Gerar Todas, ou procure em  "Todas as Combinações de 6 a 15 Dígitos:" e clique em "Usar" :  
+    <a href="#" target="_blank">
+        <img src="https://i.postimg.cc/QxqhXntN/Prt-Scr-capture.jpg" alt="Resultados da Mega Sena" width="900" height="800" class="border border-primary/20 rounded"></a>
+
+    </br />
+    <a href="#" target="_blank">
+        <img src="https://i.postimg.cc/gkJbWyx1/Prt-Scr-capture-2.jpg" alt="Resultados da Mega Sena" width="900" height="800" class="border border-primary/20 rounded"></a>
+
+       </br />
+       <p>Depois de clicar em "Usar" pode se clicar em Gerar Combinações:</p>
+    <a href="#" target="_blank">
+        <img src="https://i.postimg.cc/fWcswTTQ/Prt-Scr-capture.jpg" alt="Resultados da Mega Sena" width="900" height="800" class="border border-primary/20 rounded"></a>
+       
+    
+    </br />
+       <p>As Combinações serão geradas:</p>
+    <a href="#" target="_blank">
+        <img src="https://i.postimg.cc/L6JVthqr/Prt-Scr-capture-2.jpg" alt="Resultados da Mega Sena" width="900" height="800" class="border border-primary/20 rounded"></a>
+    
+    </br />
+        <p>Depois das combinações geradas pode se procurar os números que foram sorteados através da busca inteligente</p>
+            <p>Neste exemplo, procure pelos números sorteados no último concurso (veja dados da API acima):</p>
+    <a href="#" target="_blank">
+        <img src="https://i.postimg.cc/P5hM8HDD/Prt-Scr-capture.jpg" alt="Resultados da Mega Sena" width="900" height="800" class="border border-primary/20 rounded"></a>
+
+    </br />
+            <p>Resultado final: os números sorteados sempre estarão aparecendo aqui. Vai depender da quantidade de dígitos usado:</p>
+    <a href="#" target="_blank">
+        <img src="https://i.postimg.cc/sDKMwC87/Prt-Scr-capture.jpg" alt="Resultados da Mega Sena" width="900" height="800" class="border border-primary/20 rounded"></a>
+
+    </p><br />
+
+    <script>
+        // Função para buscar dados da API da Mega Sena
+        async function buscarDadosMegaSena() {
+            try {
+                const response = await fetch('https://servicebus2.caixa.gov.br/portaldeloterias/api/megasena');
+                const data = await response.json();
+                
+                const apiDataDiv = document.getElementById('apiData');
+                
+                if (data) {
+                    const numerosOrdenados = data.listaDezenas?.sort((a, b) => a - b) || [];
+                    
+                    apiDataDiv.innerHTML = `
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <p><strong>Concurso:</strong> ${data.numero || 'N/A'}</p>
+                                <p><strong>Data:</strong> ${data.dataApuracao || 'N/A'}</p>
+                                <p><strong>Números Sorteados:</strong></p>
+                                <div class="flex flex-wrap gap-2 mt-2">
+                                    ${numerosOrdenados.map(num => 
+                                        `<span class="bg-primary text-white px-3 py-1 rounded-full font-bold">${String(num).padStart(2, '0')}</span>`
+                                    ).join('')}
+                                </div>
+                            </div>
+                            <div>
+                                <p><strong>Arrecadação:</strong> R$ ${data.valorArrecadado ? data.valorArrecadacao?.toLocaleString('pt-BR') : 'N/A'}</p>
+                                <p><strong>Próximo Concurso:</strong> ${data.numeroConcursoProximo || 'N/A'}</p>
+                                <p><strong>Estimativa Próximo:</strong> R$ ${data.valorEstimadoProximoConcurso ? data.valorEstimadoProximoConcurso?.toLocaleString('pt-BR') : 'N/A'}</p>
+                                <p><strong>Total de Dígitos Únicos:</strong> <span class="text-primary font-bold">${new Set(numerosOrdenados.map(n => String(n).split('').map(d => parseInt(d)))).size}</span></p>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-3 bg-primary/10 rounded">
+                            <p class="text-sm"><strong>💡 Dica:</strong> Use a quantidade de dígitos únicos mostrada acima para escolher qual gerador usar na seção "Combinações".</p>
+                        </div>
+                    `;
+                } else {
+                    throw new Error('Dados não encontrados');
+                }
+            } catch (error) {
+                console.error('Erro ao buscar dados:', error);
+                document.getElementById('apiData').innerHTML = `
+                    <p class="text-red-500">❌ Erro ao carregar dados da API. Tente novamente mais tarde.</p>
+                    <p class="text-sm text-gray-500 mt-2">Concurso exemplo: 2897 - Use os geradores baseado nos últimos resultados conhecidos.</p>
+                `;
+            }
+        }
+
+        // Carregar dados quando a página carregar
+        window.addEventListener('load', buscarDadosMegaSena);
+    </script>
+
+        </div>
+    </div>
+</body>
+</html>
