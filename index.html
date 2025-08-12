@@ -352,7 +352,6 @@
                                 </div>
                             </div>
                             <div>
-                                <p><strong>Arrecadação:</strong> R$ ${data.valorArrecadado ? data.valorArrecadacao?.toLocaleString('pt-BR') : 'N/A'}</p>
                                 <p><strong>Próximo Concurso:</strong> ${data.numeroConcursoProximo || 'N/A'}</p>
                                 <p><strong>Estimativa Próximo:</strong> R$ ${data.valorEstimadoProximoConcurso ? data.valorEstimadoProximoConcurso?.toLocaleString('pt-BR') : 'N/A'}</p>
                                 <p><strong>Total de Dígitos Únicos:</strong> <span class="text-primary font-bold">${new Set(numerosOrdenados.map(n => String(n).split('').map(d => parseInt(d)))).size}</span></p>
