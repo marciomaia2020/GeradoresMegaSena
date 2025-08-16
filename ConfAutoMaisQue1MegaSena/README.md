@@ -1,0 +1,1 @@
+# ConfAutoMaisqueQue1MegaSena

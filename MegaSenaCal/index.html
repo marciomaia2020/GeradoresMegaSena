@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cálculo de Bolão Mega-Sena</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f8ff;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .field-group {
+            margin-bottom: 15px;
+        }
+        .field-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .field-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .error {
+            color: red;
+            font-size: 0.9em;
+        }
+        #resultado {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Cálculo do Custo de um Bolão Mega-Sena</h2>
+        <form id="formBolao">
+            <div class="field-group">
+                <label for="valorAposta">Valor da Aposta Simples (R$):</label>
+                <input type="number" id="valorAposta" step="0.01">
+                <div class="error" id="error-valorAposta"></div>
+            </div>
+            <div class="field-group">
+                <label for="dezenas">Quantidade de Dezenas (6 a 20):</label>
+                <input type="number" id="dezenas" min="6" max="20">
+                <div class="error" id="error-dezenas"></div>
+            </div>
+            <div class="field-group">
+                <label for="quantidadeJogos">Quantidade de Jogos:</label>
+                <input type="number" id="quantidadeJogos" min="1">
+                <div class="error" id="error-quantidadeJogos"></div>
+            </div>
+            <div class="field-group">
+                <label for="cotas">Quantidade de Cotas:</label>
+                <input type="number" id="cotas" min="1">
+                <div class="error" id="error-cotas"></div>
+            </div>
+            <div class="field-group">
+                <label for="teimosinha">Teimosinha (Concursos Consecutivos):</label>
+                <input type="number" id="teimosinha" min="1">
+                <div class="error" id="error-teimosinha"></div>
+            </div>
+            <button type="button" onclick="calcularCustoMegaSena()">Calcular</button>
+        </form>
+        <div id="resultado"></div>
+    </div>
+
+    <script>
+        function calcularCustoMegaSena() {
+            const valorAposta = parseFloat(document.getElementById('valorAposta').value);
+            const dezenas = parseInt(document.getElementById('dezenas').value, 10);
+            const quantidadeJogos = parseInt(document.getElementById('quantidadeJogos').value, 10);
+            const cotas = parseInt(document.getElementById('cotas').value, 10);
+            const teimosinha = parseInt(document.getElementById('teimosinha').value, 10) || 1;
+
+            // Limpar mensagens de erro
+            document.querySelectorAll('.error').forEach(el => el.innerText = '');
+
+            let valido = true;
+
+            if (isNaN(valorAposta) || valorAposta <= 0) {
+                document.getElementById('error-valorAposta').innerText = 'Informe um valor válido.';
+                valido = false;
+            }
+            if (![6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].includes(dezenas)) {
+                document.getElementById('error-dezenas').innerText = 'Apenas dezenas entre 6 e 20 são permitidas.';
+                valido = false;
+            }
+            if (isNaN(quantidadeJogos) || quantidadeJogos <= 0) {
+                document.getElementById('error-quantidadeJogos').innerText = 'Informe uma quantidade válida de jogos.';
+                valido = false;
+            }
+            if (isNaN(cotas) || cotas <= 0) {
+                document.getElementById('error-cotas').innerText = 'Informe uma quantidade válida de cotas.';
+                valido = false;
+            }
+
+            if (!valido) return;
+
+            const precosBase = {
+                6: valorAposta, 7: valorAposta * 7, 8: valorAposta * 28, 9: valorAposta * 84,
+                10: valorAposta * 210, 11: valorAposta * 462, 12: valorAposta * 924, 13: valorAposta * 1716,
+                14: valorAposta * 3003, 15: valorAposta * 5005, 16: valorAposta * 8008,
+                17: valorAposta * 12376, 18: valorAposta * 18564, 19: valorAposta * 27132, 20: valorAposta * 38760
+            };
+
+            const custoSemTeimosinha = precosBase[dezenas] * quantidadeJogos;
+            const custoTotal = custoSemTeimosinha * teimosinha;
+            const custoPorCota = custoTotal / cotas;
+
+            document.getElementById('resultado').innerHTML = `
+                <p>Quantidade de Jogos: <strong>${quantidadeJogos}</strong></p>
+                <p>Custo Total: <strong>R$${custoTotal.toFixed(2)}</strong></p>
+                <p>Custo por Cota: <strong>R$${custoPorCota.toFixed(2)}</strong></p>
+                <p>Teimosinha: <strong>${teimosinha}</strong></p>
+            `;
+        }
+    </script>
+</body>
+</html>

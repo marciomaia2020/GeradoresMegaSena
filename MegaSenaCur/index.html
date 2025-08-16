@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://kit.fontawesome.com/afb02bf9ac.js" crossorigin="anonymous"></script>
+    <script src="https://kit.fontawesome.com/2fa2c650ed.js" crossorigin="anonymous"></script>
+
+    <title>Resultados Mega Sena</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .input-section {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .result-info {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            text-align: left;
+        }
+
+        .numbers-display {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        .number-ball {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background-color: #209869;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        button {
+            padding: 8px 16px;
+            background-color: #209869;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px;
+        }
+
+        button:hover {
+            background-color: #1a7d57;
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .numbers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+            padding: 5 10px;
+        }
+
+        .number {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #ccc;
+            border-radius: 50%;
+            background-color: white;
+            font-weight: bold;
+        }
+
+        .selected {
+            background-color: #209869;
+            color: white;
+            border-color: #209869;
+        }
+
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+
+        .loading {
+            display: none;
+            margin: 20px 0;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        input[type="number"] {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100px;
+            margin: 0 10px;
+        }
+
+        .prize-info {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #e6f4ed;
+            border-radius: 4px;
+        }
+        
+        .prize-info p {
+            margin: 8px 0;
+            font-size: 15px;
+        }
+
+        .prize-info span {
+            font-weight: bold;
+            color: #209869;
+            font-size: 16px;
+        }
+
+        .acumulou-text {
+            font-size: 18px;
+            font-weight: bold;
+            color: #e74c3c;
+        }
+
+        .proximo-concurso {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px dashed #209869;
+        }
+
+        .proximo-concurso p {
+            color: #2c3e50;
+        }
+
+        .valor-estimado {
+            font-size: 18px;
+            color: #e67e22;
+            font-weight: bold;
+        }
+        .outros {
+            display: inline;
+            background-color: #e6f4ed;
+            align-content: space-between;
+            background-color: yellow;
+        }
+        footer {
+            color: #161515;
+            text-align: center;
+            padding: 5px;
+            margin-bottom: auto;
+            margin-top: 10px; /* Espaço acima do rodapé */
+         }
+
+        h1, h2, h3, h4, h6, h6{ text-align: center;}
+        @media screen and (max-width: 600px) {
+         body {
+             background-color: lightblue;
+                }
+        }
+
+
+</style>
+</head>
+<body>
+    <div class="container">
+        <div class="input-section">
+            <h2>Resultados da Mega Sena</h2>
+            <div>
+                <label>Concurso:</label>
+                <input type="number" id="concursoInput" placeholder="Nº do concurso">
+                <button onclick="buscarResultado()" id="searchButton">Buscar Resultado</button>
+            </div>
+            <hr />
+            <div id="loading" class="loading">Buscando resultado...</div>
+            <div id="error" class="error"></div>
+        </div>
+
+        <div id="resultInfo" class="result-info" style="display: none;">
+            <h3>Resultado do Concurso <span id="concursoNumero"></span></h3>
+            <h3>Data do sorteio: <span id="dataSorteio"></span></h3>
+            <h6>Local: <span id="localSorteio"></span></h6>
+            <hr />
+            <div class="numbers-display" id="numbersDisplay"></div>
+            <hr />
+            <div class="numbers-grid" id="grid">
+                <!-- Números serão gerados via JavaScript -->
+            </div>
+            <hr />
+
+            <div class="prize-info">
+                <p class="acumulou-text">Acumulou: <span id="acumulou"></span></p>
+                <p><i class="fas fa-trophy"></i> Ganhadores 6 acertos: <span id="ganhadores6"></span></p>
+                <p><i class="fas fa-star"></i> Ganhadores 5 acertos: <span id="ganhadores5"></span></p>
+                <p><i class="fas fa-check-circle"></i> Ganhadores 4 acertos: <span id="ganhadores4"></span></p>
+                <p><i class="fas fa-dollar-sign"></i> Prêmio 6 acertos: R$ <span id="premio6"></span></p>
+                <p><i class="fas fa-dollar-sign"></i> Prêmio 5 acertos: R$ <span id="premio5"></span></p>
+                <p><i class="fas fa-dollar-sign"></i> Prêmio 4 acertos: R$ <span id="premio4"></span></p>
+                <div class="proximo-concurso">
+                    <p><i class="fas fa-calendar-alt"></i> Próximo Concurso: <span id="proximoConcurso"></span></p>
+                    <p><i class="fas fa-clock"></i> Data Próximo Concurso: <span id="dataProximoConcurso"></span></p>
+                    <p><i class="fas fa-money-bill-wave"></i> Valor Estimado: <span id="valorEstimadoProximoConcurso" class="valor-estimado"></span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3>Em breve muitas curiosidades sobre este modalidade.</h3>
+
+    <footer>Feito por: <i>Márcio Fernando Maia -  Todos os direitos reservado - 2025</footer>
+
+
+    <script>
+        function generateGrid() {
+            const grid = document.getElementById('grid');
+            for (let i = 1; i <= 60; i++) {
+                const numberDiv = document.createElement('div');
+                numberDiv.className = 'number';
+                numberDiv.textContent = i;
+                grid.appendChild(numberDiv);
+            }
+        }
+
+        function formatPrize(value) {
+            return new Intl.NumberFormat('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(value);
+        }
+
+        function formatDate(dateString) {
+            const [day, month, year] = dateString.split('/');
+            return `${day}/${month}/${year}`;
+        }
+
+        async function buscarResultado() {
+            const concursoInput = document.getElementById('concursoInput');
+            const concurso = concursoInput.value;
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const button = document.getElementById('searchButton');
+            const resultInfo = document.getElementById('resultInfo');
+
+            error.textContent = '';
+            loading.classList.add('active');
+            button.disabled = true;
+            resultInfo.style.display = 'none';
+
+            try {
+                const url = 'https://loteriascaixa-api.herokuapp.com/api/megasena/' + (concurso || 'latest');
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error('Não foi possível encontrar o resultado deste concurso');
+                }
+
+                const data = await response.json();
+
+                // Atualiza as informações na tela
+                document.getElementById('concursoNumero').textContent = data.concurso;
+                document.getElementById('dataSorteio').textContent = formatDate(data.data);
+                document.getElementById('localSorteio').textContent = data.local;
+                document.getElementById('acumulou').textContent = data.acumulou ? 'Sim' : 'Não';
+                
+                // Atualiza informações de ganhadores e prêmios
+                const premiacoes = data.premiacoes;
+                document.getElementById('ganhadores6').textContent = premiacoes[0].ganhadores;
+                document.getElementById('ganhadores5').textContent = premiacoes[1].ganhadores;
+                document.getElementById('ganhadores4').textContent = premiacoes[2].ganhadores;
+                
+                document.getElementById('premio6').textContent = formatPrize(premiacoes[0].valorPremio);
+                document.getElementById('premio5').textContent = formatPrize(premiacoes[1].valorPremio);
+                document.getElementById('premio4').textContent = formatPrize(premiacoes[2].valorPremio);
+                
+                // Informações do próximo concurso
+                document.getElementById('proximoConcurso').textContent = data.proximoConcurso;
+                document.getElementById('dataProximoConcurso').textContent = formatDate(data.dataProximoConcurso);
+                document.getElementById('valorEstimadoProximoConcurso').textContent = 
+                    formatPrize(data.valorEstimadoProximoConcurso);
+
+                // Atualiza os números sorteados
+                const numbersDisplay = document.getElementById('numbersDisplay');
+                numbersDisplay.innerHTML = '';
+                data.dezenas.forEach(numero => {
+                    const ball = document.createElement('div');
+                    ball.className = 'number-ball';
+                    ball.textContent = numero;
+                    numbersDisplay.appendChild(ball);
+                });
+
+                // Atualiza a grade
+                document.querySelectorAll('.number').forEach(num => {
+                    num.classList.remove('selected');
+                });
+                data.dezenas.forEach(numero => {
+                    const numberDiv = document.querySelector(`.number:nth-child(${numero})`);
+                    if (numberDiv) {
+                        numberDiv.classList.add('selected');
+                    }
+                });
+
+                resultInfo.style.display = 'block';
+                if (!concursoInput.value) {
+                    concursoInput.value = data.concurso;
+                }
+
+            } catch (err) {
+                error.textContent = err.message || 'Erro ao buscar o resultado. Tente novamente.';
+            } finally {
+                loading.classList.remove('active');
+                button.disabled = false;
+            }
+        }
+
+        // Inicializa a página
+        generateGrid();
+        // Busca o último resultado ao carregar a página
+        buscarResultado();
+    </script>
+</body>
+</html>
