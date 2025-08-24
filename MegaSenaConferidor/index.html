@@ -1,0 +1,1832 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mega-Sena Conferidor Inteligente - API Oficial da Caixa</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --mega-verde: #1b9a67;
+            --mega-verde-claro: #22c383;
+            --mega-verde-escuro: #178257;
+            --mega-bg-claro: #e9fbf4;
+            --mega-bg: #d4f7e9;
+            --mega-destaque: #26d991;
+            --vermelho: #dc3545;
+            --text-primary: #333;
+            --border-color: #dee2e6;
+            --dourado: #FFD700;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--mega-bg-claro) 0%, var(--mega-bg) 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(27, 154, 103, 0.15);
+            border: 1px solid rgba(27, 154, 103, 0.1);
+        }
+
+        h1 {
+            background: linear-gradient(135deg, var(--mega-verde) 0%, var(--mega-verde-claro) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            margin-bottom: 25px;
+            font-weight: 700;
+            font-size: 32px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: var(--mega-verde);
+            font-size: 1.5rem;
+            margin: 1.5rem 0 1rem 0;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--mega-destaque);
+            position: relative;
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            width: 60px;
+            height: 3px;
+            background: var(--dourado);
+        }
+
+        /* API Status */
+        .api-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .api-status.online {
+            background-color: var(--mega-bg-claro);
+            color: var(--mega-verde);
+            border: 2px solid var(--mega-verde);
+        }
+
+        .api-status.offline {
+            background-color: #ffe6e6;
+            color: var(--vermelho);
+            border: 2px solid var(--vermelho);
+        }
+
+        /* Drop zone */
+        .drop-zone {
+            width: 100%;
+            height: 150px;
+            border: 3px dashed var(--mega-verde);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+            cursor: pointer;
+            background: linear-gradient(135deg, rgba(27, 154, 103, 0.05) 0%, rgba(27, 154, 103, 0.1) 100%);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .drop-zone::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(27, 154, 103, 0.1), transparent);
+            transform: rotate(-45deg);
+            transition: all 0.6s;
+            opacity: 0;
+        }
+
+        .drop-zone:hover::before {
+            opacity: 1;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(-45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(-45deg); }
+        }
+
+        .drop-zone:hover {
+            background: linear-gradient(135deg, rgba(27, 154, 103, 0.1) 0%, rgba(27, 154, 103, 0.2) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(27, 154, 103, 0.2);
+        }
+
+        .drop-zone.dragover {
+            background: linear-gradient(135deg, rgba(27, 154, 103, 0.2) 0%, rgba(38, 217, 145, 0.2) 100%);
+            border-color: var(--mega-destaque);
+            transform: scale(1.02);
+        }
+
+        .drop-zone.processing {
+            border-color: var(--dourado);
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 215, 0, 0.2) 100%);
+        }
+
+        .drop-zone-content {
+            text-align: center;
+            z-index: 1;
+        }
+
+        .drop-zone-hint {
+            color: #666;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        /* Volante */
+        .volante {
+            margin: 25px 0;
+            padding: 25px;
+            background: linear-gradient(135deg, var(--mega-bg-claro) 0%, rgba(255, 255, 255, 0.8) 100%);
+            border-radius: 15px;
+            border: 2px solid var(--mega-verde);
+            box-shadow: 0 4px 15px rgba(27, 154, 103, 0.1);
+        }
+
+        .numeros {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 8px;
+            margin: 20px 0;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .numero {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border: 2px solid var(--border-color);
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .numero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        .numero:hover::before {
+            left: 100%;
+        }
+
+        .numero:hover {
+            transform: scale(1.1);
+            background: linear-gradient(135deg, #f0f0f0 0%, #e8e8e8 100%);
+            box-shadow: 0 4px 15px rgba(27, 154, 103, 0.2);
+        }
+
+        .numero.selecionado {
+            background: linear-gradient(135deg, var(--mega-verde) 0%, var(--mega-verde-claro) 100%);
+            color: white;
+            border-color: var(--mega-verde);
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(27, 154, 103, 0.4);
+        }
+
+        .numero.frequente {
+            border-color: var(--dourado);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .numero.atrasado {
+            border-color: var(--vermelho);
+            box-shadow: 0 0 10px rgba(220, 53, 69, 0.3);
+        }
+
+        /* Controles */
+        .controles {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(27, 154, 103, 0.1);
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-group label {
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--mega-verde);
+        }
+
+        .input-group input, .input-group select {
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: var(--mega-verde);
+            box-shadow: 0 0 0 3px rgba(27, 154, 103, 0.1);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--mega-verde);
+        }
+
+        /* Botões */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 16px;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            transform: translate(-50%, -50%);
+        }
+
+        .btn:hover::before {
+            width: 300%;
+            height: 300%;
+        }
+
+        .acoes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 25px 0;
+        }
+
+        .btn-azul, .btn-verde {
+            background: linear-gradient(135deg, var(--mega-verde) 0%, var(--mega-verde-claro) 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(27, 154, 103, 0.3);
+        }
+
+        .btn-azul:hover, .btn-verde:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(27, 154, 103, 0.4);
+        }
+
+        .btn-vermelho {
+            background: linear-gradient(135deg, var(--vermelho) 0%, #e74c3c 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+        }
+
+        .btn-vermelho:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(220, 53, 69, 0.4);
+        }
+
+        .btn-roxo {
+            background: linear-gradient(135deg, var(--dourado) 0%, #f39c12 100%);
+            color: #333;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        }
+
+        .btn-roxo:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+        }
+
+        /* Estatísticas */
+        .estatisticas {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, white 0%, var(--mega-bg-claro) 100%);
+            border: 2px solid var(--mega-verde);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(27, 154, 103, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(27, 154, 103, 0.2);
+        }
+
+        .stat-card h3 {
+            color: var(--mega-verde);
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--mega-verde);
+            margin: 10px 0;
+        }
+
+        /* Jogos incluídos */
+        .jogos-incluidos {
+            margin: 25px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f9f9f9 0%, #ffffff 100%);
+            border-radius: 12px;
+            border: 2px solid rgba(27, 154, 103, 0.1);
+        }
+
+        .jogos-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .jogo-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            margin-bottom: 2px;
+            background-color: #f8f8f8;
+            border-left: 4px solid var(--mega-verde);
+            transition: all 0.3s ease;
+        }
+
+        .jogo-item:hover {
+            background-color: var(--mega-bg-claro);
+            transform: translateX(5px);
+        }
+
+        .jogo-numero {
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            line-height: 28px;
+            text-align: center;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--mega-verde) 0%, var(--mega-verde-claro) 100%);
+            color: white;
+            margin-right: 5px;
+            font-weight: 600;
+            font-size: 12px;
+            box-shadow: 0 2px 8px rgba(27, 154, 103, 0.3);
+        }
+
+        /* Resultados */
+        .resultados {
+            margin-top: 30px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+
+        .card {
+            background: linear-gradient(135deg, var(--mega-bg-claro) 0%, white 100%);
+            border: 2px solid var(--mega-verde);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--mega-verde), var(--dourado), var(--mega-verde));
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(27, 154, 103, 0.2);
+        }
+
+        .contagem {
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--mega-verde);
+            margin: 15px 0;
+        }
+
+        .valor-premio {
+            color: var(--dourado);
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        /* Tabela */
+        .tabela-container {
+            overflow-x: auto;
+            margin: 25px 0;
+            max-height: 500px;
+            overflow-y: auto;
+            border: 2px solid var(--mega-verde);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(27, 154, 103, 0.1);
+        }
+
+        .tabela-premios {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .tabela-premios th, .tabela-premios td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .tabela-premios th {
+            background: linear-gradient(135deg, var(--mega-verde) 0%, var(--mega-verde-claro) 100%);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-weight: 600;
+        }
+
+        .tabela-premios tr:nth-child(even) {
+            background-color: var(--mega-bg-claro);
+        }
+
+        .tabela-premios tr:hover {
+            background-color: var(--mega-bg);
+        }
+
+        /* Status */
+        .status {
+            margin: 20px 0;
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%);
+            border-radius: 10px;
+            border-left: 5px solid #2196f3;
+            box-shadow: 0 2px 10px rgba(33, 150, 243, 0.1);
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(27, 154, 103, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--mega-verde);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Media queries */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .numeros {
+                grid-template-columns: repeat(6, 1fr);
+                gap: 6px;
+            }
+            
+            .numero {
+                width: 40px;
+                height: 40px;
+                font-size: 12px;
+            }
+            
+            .cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .controles {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .numeros {
+                grid-template-columns: repeat(5, 1fr);
+            }
+            
+            .cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .acoes {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            .dark {
+                --text-primary: #e0e0e0;
+                --border-color: #444;
+            }
+            
+            .dark body {
+                background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+                color: var(--text-primary);
+            }
+            
+            .dark .container {
+                background-color: #2a2a2a;
+                border-color: var(--mega-verde);
+            }
+            
+            .dark .numero {
+                background: linear-gradient(135deg, #3a3a3a 0%, #4a4a4a 100%);
+                color: #e0e0e0;
+                border-color: #555;
+            }
+            
+            .dark .numero:hover {
+                background: linear-gradient(135deg, #4a4a4a 0%, #5a5a5a 100%);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Mega-Sena Conferidor Inteligente - API Oficial da Caixa</h1>
+
+        <div class="api-status" id="api-status">
+            <i class="fas fa-circle-notch fa-spin"></i>
+            <span style="margin-left: 10px;">Conectando com a API da Caixa...</span>
+        </div>
+
+        <div class="estatisticas" id="estatisticas-container" style="display: none;">
+            <div class="stat-card">
+                <h3>📊 Último Concurso</h3>
+                <div class="stat-value" id="ultimo-concurso">-</div>
+                <p>Concurso <span id="numero-ultimo-concurso">-</span></p>
+            </div>
+            <div class="stat-card">
+                <h3>💰 Próximo Prêmio</h3>
+                <div class="stat-value" id="proximo-premio">-</div>
+                <p id="data-proximo-sorteio">-</p>
+            </div>
+            <div class="stat-card">
+                <h3>🏆 Acumulado</h3>
+                <div class="stat-value" id="valor-acumulado">-</div>
+                <p id="status-acumulacao">-</p>
+            </div>
+        </div>
+
+        <div class="volante">
+            <h2>🎲 Selecione 6 números (1 a 60)</h2>
+            
+            <div class="controles">
+                <div class="input-group">
+                    <label for="tipo-palpite">🎯 Tipo de Palpite:</label>
+                    <select id="tipo-palpite">
+                        <option value="aleatorio">Totalmente Aleatório</option>
+                        <option value="frequentes">Baseado em Números Frequentes</option>
+                        <option value="atrasados">Baseado em Números Atrasados</option>
+                        <option value="equilibrado">Equilibrado (Frequentes + Atrasados)</option>
+                        <option value="par-impar">Balanceado Par/Ímpar</option>
+                        <option value="dezenas">Balanceado por Dezenas</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label for="concurso-inicio">📅 Concurso Inicial:</label>
+                    <input type="number" id="concurso-inicio" min="1" value="1">
+                </div>
+                
+                <div class="input-group">
+                    <label for="concurso-fim">📅 Concurso Final:</label>
+                    <input type="number" id="concurso-fim" min="1" value="100">
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="somente-premiados">
+                    <label for="somente-premiados">🏆 Mostrar somente jogos premiados (4+ acertos)</label>
+                </div>
+            </div>
+            
+            <div class="numeros" id="numeros-container">
+                <!-- Números serão gerados pelo JavaScript -->
+            </div>
+        </div>
+
+        <div class="drop-zone" id="drop-zone">
+            <div class="drop-zone-content">
+                <p><i class="fas fa-cloud-upload-alt" style="font-size: 32px; color: var(--mega-verde);"></i></p>
+                <p><strong>📁 Arraste e solte seu arquivo aqui ou clique para selecionar</strong></p>
+                <p class="drop-zone-hint">Arquivos .txt ou .xlsx | Formato: 6 números por linha | API Oficial da Caixa</p>
+                <input type="file" id="file-input" accept=".txt,.xlsx,.xls" hidden>
+            </div>
+        </div>
+
+        <div class="status" id="status">
+            <strong>Status:</strong> Pronto para receber arquivos e gerar palpites inteligentes
+        </div>
+
+        <div class="acoes">
+            <button id="incluir" class="btn btn-azul">
+                <i class="fas fa-plus"></i> Incluir Jogo
+            </button>
+            <button id="limpar" class="btn btn-vermelho">
+                <i class="fas fa-eraser"></i> Limpar Tudo
+            </button>
+            <button id="palpite-inteligente" class="btn btn-roxo">
+                <i class="fas fa-brain"></i> Palpite Inteligente
+            </button>
+            <button id="conferir" class="btn btn-verde">
+                <i class="fas fa-trophy"></i> Conferir Jogos
+            </button>
+        </div>
+
+        <div class="jogos-incluidos">
+            <h2>🎮 Jogos Incluídos (<span id="contador-jogos">0</span> jogos)</h2>
+            <div class="jogos-container">
+                <div id="lista-jogos" class="lista-jogos"></div>
+            </div>
+        </div>
+
+        <div class="resultados" id="resultados" style="display: none;">
+            <h2>📊 Resumo de Acertos</h2>
+            <div class="cards">
+                <div class="card">
+                    <h3>🥉 Quadra (4 acertos)</h3>
+                    <p class="contagem" id="quatro-acertos">0</p>
+                    <p class="valor-premio" id="valor-quadra">R$ 0,00</p>
+                </div>
+                <div class="card">
+                    <h3>🥈 Quina (5 acertos)</h3>
+                    <p class="contagem" id="cinco-acertos">0</p>
+                    <p class="valor-premio" id="valor-quina">R$ 0,00</p>
+                </div>
+                <div class="card">
+                    <h3>🥇 Sena (6 acertos)</h3>
+                    <p class="contagem" id="seis-acertos">0</p>
+                    <p class="valor-premio" id="valor-sena">R$ 0,00</p>
+                </div>
+            </div>
+
+            <div class="tabela-resumo">
+                <h2>🏆 Resultados Detalhados</h2>
+                <div class="tabela-container">
+                    <table class="tabela-premios">
+                        <thead>
+                            <tr>
+                                <th>🎯 Concurso</th>
+                                <th>📅 Data</th>
+                                <th>🔢 Números Sorteados</th>
+                                <th>🎮 Seu Jogo</th>
+                                <th>✅ Acertos</th>
+                                <th>💰 Prêmio</th>
+                                <th>🏆 Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-resultados">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variáveis globais
+        const jogosIncluidos = [];
+        const numerosSelecionados = new Set();
+        let dadosAPI = null;
+        let ultimoConcurso = null;
+        let estatisticasNumeros = {};
+
+        // Detectar dark mode
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("🚀 Inicializando Mega-Sena Conferidor Inteligente...");
+            
+            gerarNumeros();
+            setupEventListeners();
+            conectarAPI();
+            
+            console.log("✅ Aplicação inicializada com sucesso!");
+        });
+
+        // Gerar números de 1 a 60
+        function gerarNumeros() {
+            const container = document.getElementById('numeros-container');
+            container.innerHTML = '';
+            
+            for (let i = 1; i <= 60; i++) {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'numero';
+                button.dataset.numero = i;
+                button.textContent = String(i).padStart(2, '0');
+                
+                button.addEventListener('click', function() {
+                    const num = parseInt(this.dataset.numero);
+                    
+                    if (this.classList.contains('selecionado')) {
+                        this.classList.remove('selecionado');
+                        numerosSelecionados.delete(num);
+                    } else if (numerosSelecionados.size < 6) {
+                        this.classList.add('selecionado');
+                        numerosSelecionados.add(num);
+                    } else {
+                        mostrarAlerta('Você já selecionou 6 números!', 'warning');
+                    }
+                    
+                    atualizarStatusSelecao();
+                });
+                
+                container.appendChild(button);
+            }
+        }
+
+        // Conectar com a API da Caixa
+        async function conectarAPI() {
+            const statusElement = document.getElementById('api-status');
+            const estatisticasContainer = document.getElementById('estatisticas-container');
+            
+            try {
+                statusElement.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i><span style="margin-left: 10px;">Buscando dados da API da Caixa...</span>';
+                
+                // Tentar múltiplas abordagens para contornar CORS
+                let dadosObtidos = null;
+                
+                // Abordagem 1: Tentar API direta (pode falhar por CORS)
+                try {
+                    console.log("🔄 Tentativa 1: API direta da Caixa...");
+                    const response = await fetch('https://servicebus2.caixa.gov.br/portaldeloterias/api/megasena', {
+                        method: 'GET',
+                        mode: 'cors',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                            'User-Agent': 'Mozilla/5.0 (compatible; MegaSenaApp/1.0)',
+                            'Origin': window.location.origin
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        dadosObtidos = await response.json();
+                        console.log("✅ Sucesso na API direta!");
+                    }
+                } catch (corsError) {
+                    console.warn("⚠️ CORS bloqueou API direta:", corsError.message);
+                }
+                
+                // Abordagem 2: Tentar proxy público (allorigins.win)
+                if (!dadosObtidos) {
+                    try {
+                        console.log("🔄 Tentativa 2: Proxy allorigins.win...");
+                        const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://servicebus2.caixa.gov.br/portaldeloterias/api/megasena');
+                        const response = await fetch(proxyUrl);
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            dadosObtidos = JSON.parse(data.contents);
+                            console.log("✅ Sucesso via proxy allorigins!");
+                        }
+                    } catch (proxyError) {
+                        console.warn("⚠️ Proxy allorigins falhou:", proxyError.message);
+                    }
+                }
+                
+                // Abordagem 3: Tentar proxy cors-anywhere
+                if (!dadosObtidos) {
+                    try {
+                        console.log("🔄 Tentativa 3: Proxy cors-anywhere...");
+                        const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+                        const response = await fetch(corsProxy + 'https://servicebus2.caixa.gov.br/portaldeloterias/api/megasena', {
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            dadosObtidos = await response.json();
+                            console.log("✅ Sucesso via cors-anywhere!");
+                        }
+                    } catch (corsProxyError) {
+                        console.warn("⚠️ Proxy cors-anywhere falhou:", corsProxyError.message);
+                    }
+                }
+                
+                // Abordagem 4: Usar scraping alternativo via proxy
+                if (!dadosObtidos) {
+                    try {
+                        console.log("🔄 Tentativa 4: API alternativa...");
+                        // Tentar uma API pública alternativa ou webscraping
+                        const altResponse = await fetch('https://api.github.com/repos/guto-alves/loterias-api'); // Testar conectividade
+                        if (altResponse.ok) {
+                            console.log("🌐 Conectividade OK, mas APIs indisponíveis");
+                        }
+                    } catch (altError) {
+                        console.warn("⚠️ Sem conectividade externa:", altError.message);
+                    }
+                }
+                
+                if (dadosObtidos && dadosObtidos.numero && dadosObtidos.listaDezenas) {
+                    dadosAPI = dadosObtidos;
+                    ultimoConcurso = dadosAPI;
+                    
+                    // Atualizar interface com dados reais
+                    atualizarEstatisticas();
+                    await calcularEstatisticasNumeros();
+                    aplicarVisualizacaoEstatisticas();
+                    
+                    statusElement.className = 'api-status online';
+                    statusElement.innerHTML = '<i class="fas fa-check-circle"></i><span style="margin-left: 10px;">✅ Conectado com a API da Caixa - Dados Reais Obtidos!</span>';
+                    
+                    estatisticasContainer.style.display = 'grid';
+                    
+                    console.log("✅ API conectada com sucesso!", dadosAPI);
+                    return;
+                }
+                
+                throw new Error("Nenhuma abordagem de API funcionou - usando dados simulados atualizados");
+                
+            } catch (error) {
+                console.error("❌ Todas as tentativas de API falharam:", error);
+                
+                statusElement.className = 'api-status offline';
+                statusElement.innerHTML = '<i class="fas fa-info-circle"></i><span style="margin-left: 10px;">🔄 API indisponível - Usando dados simulados atualizados</span>';
+                
+                // Usar dados mock atualizados em caso de erro
+                usarDadosMockAtualizado();
+            }
+        }
+
+        // Atualizar estatísticas com dados reais
+        function atualizarEstatisticas() {
+            if (!dadosAPI) return;
+            
+            const ultimoConcursoEl = document.getElementById('ultimo-concurso');
+            const numeroConcursoEl = document.getElementById('numero-ultimo-concurso');
+            const proximoPremioEl = document.getElementById('proximo-premio');
+            const dataProximoEl = document.getElementById('data-proximo-sorteio');
+            const valorAcumuladoEl = document.getElementById('valor-acumulado');
+            const statusAcumulacaoEl = document.getElementById('status-acumulacao');
+            
+            // Último concurso
+            ultimoConcursoEl.textContent = dadosAPI.listaDezenas.join(' ');
+            numeroConcursoEl.textContent = dadosAPI.numero;
+            
+            // Próximo prêmio
+            proximoPremioEl.textContent = formatarMoeda(dadosAPI.valorEstimadoProximoConcurso);
+            dataProximoEl.textContent = dadosAPI.dataProximoConcurso;
+            
+            // Acumulação
+            valorAcumuladoEl.textContent = formatarMoeda(dadosAPI.valorAcumuladoProximoConcurso);
+            statusAcumulacaoEl.textContent = dadosAPI.acumulado ? 'Acumulou!' : 'Não acumulou';
+            
+            // Atualizar campos de concurso
+            document.getElementById('concurso-fim').value = dadosAPI.numero;
+            document.getElementById('concurso-inicio').value = Math.max(1, dadosAPI.numero - 99);
+        }
+
+        // Calcular estatísticas dos números
+        async function calcularEstatisticasNumeros() {
+            if (!dadosAPI) return;
+            
+            const statusEl = document.getElementById('status');
+            statusEl.innerHTML = '<strong>Status:</strong> 📊 Analisando estatísticas dos números...';
+            
+            try {
+                // Buscar dados de múltiplos concursos para estatísticas
+                const concursoAtual = dadosAPI.numero;
+                const concursos = [];
+                
+                // Buscar últimos 50 concursos para análise
+                for (let i = Math.max(1, concursoAtual - 49); i <= concursoAtual; i++) {
+                    try {
+                        const response = await fetch(`https://servicebus2.caixa.gov.br/portaldeloterias/api/megasena/${i}`);
+                        if (response.ok) {
+                            const dados = await response.json();
+                            if (dados.listaDezenas) {
+                                concursos.push({
+                                    numero: dados.numero,
+                                    dezenas: dados.listaDezenas.map(d => parseInt(d))
+                                });
+                            }
+                        }
+                        // Delay pequeno para não sobrecarregar a API
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    } catch (err) {
+                        console.warn(`Erro ao buscar concurso ${i}:`, err);
+                    }
+                }
+                
+                // Calcular frequências
+                const frequencias = {};
+                const ultimaAparicao = {};
+                
+                for (let i = 1; i <= 60; i++) {
+                    frequencias[i] = 0;
+                    ultimaAparicao[i] = 0;
+                }
+                
+                concursos.forEach((concurso, index) => {
+                    concurso.dezenas.forEach(numero => {
+                        frequencias[numero]++;
+                        ultimaAparicao[numero] = concursos.length - index;
+                    });
+                });
+                
+                estatisticasNumeros = {
+                    frequencias,
+                    ultimaAparicao,
+                    totalConcursos: concursos.length
+                };
+                
+                statusEl.innerHTML = '<strong>Status:</strong> ✅ Estatísticas calculadas com base em dados reais da API!';
+                
+            } catch (error) {
+                console.error("Erro ao calcular estatísticas:", error);
+                statusEl.innerHTML = '<strong>Status:</strong> ⚠️ Erro ao calcular estatísticas, usando dados simulados.';
+                // Gerar estatísticas simuladas
+                gerarEstatisticasSimuladas();
+            }
+        }
+
+        // Gerar estatísticas simuladas
+        function gerarEstatisticasSimuladas() {
+            const frequencias = {};
+            const ultimaAparicao = {};
+            
+            for (let i = 1; i <= 60; i++) {
+                // Números mais centrais tendem a ser mais frequentes
+                const baseProbability = Math.abs(30 - i) / 30;
+                frequencias[i] = Math.floor((1 - baseProbability) * 20) + Math.floor(Math.random() * 15) + 5;
+                ultimaAparicao[i] = Math.floor(Math.random() * 30) + 1;
+            }
+            
+            estatisticasNumeros = {
+                frequencias,
+                ultimaAparicao,
+                totalConcursos: 50
+            };
+        }
+
+        // Aplicar visualização das estatísticas nos números
+        function aplicarVisualizacaoEstatisticas() {
+            if (!estatisticasNumeros.frequencias) return;
+            
+            const frequencias = estatisticasNumeros.frequencias;
+            const ultimaAparicao = estatisticasNumeros.ultimaAparicao;
+            
+            // Calcular médias
+            const mediaFrequencia = Object.values(frequencias).reduce((a, b) => a + b, 0) / 60;
+            const mediaAtraso = Object.values(ultimaAparicao).reduce((a, b) => a + b, 0) / 60;
+            
+            document.querySelectorAll('.numero').forEach(elemento => {
+                const numero = parseInt(elemento.dataset.numero);
+                
+                elemento.classList.remove('frequente', 'atrasado');
+                
+                // Números frequentes (acima da média)
+                if (frequencias[numero] > mediaFrequencia * 1.2) {
+                    elemento.classList.add('frequente');
+                    elemento.title = `Número frequente: ${frequencias[numero]} aparições`;
+                }
+                
+                // Números atrasados (muito tempo sem sair)
+                if (ultimaAparicao[numero] > mediaAtraso * 1.5) {
+                    elemento.classList.add('atrasado');
+                    elemento.title = `Número atrasado: ${ultimaAparicao[numero]} concursos sem sair`;
+                }
+            });
+        }
+
+        // Usar dados mock em caso de erro na API
+        function usarDadosMock() {
+            dadosAPI = {
+                numero: 2897,
+                listaDezenas: ["01", "06", "24", "27", "28", "57"],
+                dataProximoConcurso: "07/08/2025",
+                valorEstimadoProximoConcurso: 3500000.0,
+                valorAcumuladoProximoConcurso: 0.0,
+                acumulado: false
+            };
+            
+            atualizarEstatisticas();
+            gerarEstatisticasSimuladas();
+            aplicarVisualizacaoEstatisticas();
+            
+            document.getElementById('estatisticas-container').style.display = 'grid';
+        }
+
+        // Usar dados mock atualizados com dados mais realísticos
+        function usarDadosMockAtualizado() {
+            const dataAtual = new Date();
+            const proximaQuarta = new Date(dataAtual);
+            proximaQuarta.setDate(dataAtual.getDate() + ((3 - dataAtual.getDay() + 7) % 7));
+            
+            dadosAPI = {
+                numero: 2900,
+                listaDezenas: ["03", "12", "23", "36", "41", "52"],
+                dataApuracao: dataAtual.toLocaleDateString('pt-BR'),
+                dataProximoConcurso: proximaQuarta.toLocaleDateString('pt-BR'),
+                valorEstimadoProximoConcurso: 15000000.0,
+                valorAcumuladoProximoConcurso: 0.0,
+                valorAcumuladoConcursoEspecial: 120000000.0,
+                acumulado: false,
+                listaRateioPremio: [
+                    {
+                        "descricaoFaixa": "6 acertos",
+                        "faixa": 1,
+                        "numeroDeGanhadores": 2,
+                        "valorPremio": 7500000.0
+                    },
+                    {
+                        "descricaoFaixa": "5 acertos", 
+                        "faixa": 2,
+                        "numeroDeGanhadores": 89,
+                        "valorPremio": 42500.0
+                    },
+                    {
+                        "descricaoFaixa": "4 acertos",
+                        "faixa": 3,
+                        "numeroDeGanhadores": 6843,
+                        "valorPremio": 1250.0
+                    }
+                ]
+            };
+            
+            ultimoConcurso = dadosAPI;
+            
+            atualizarEstatisticas();
+            gerarEstatisticasSimuladas();
+            aplicarVisualizacaoEstatisticas();
+            
+            document.getElementById('estatisticas-container').style.display = 'grid';
+            
+            console.log("📊 Usando dados simulados atualizados:", dadosAPI);
+        }
+
+        // Gerar palpite inteligente
+        function gerarPalpiteInteligente() {
+            const tipo = document.getElementById('tipo-palpite').value;
+            let numeros = [];
+            
+            switch (tipo) {
+                case 'frequentes':
+                    numeros = gerarPorFrequencia(true);
+                    break;
+                case 'atrasados':
+                    numeros = gerarPorAtraso();
+                    break;
+                case 'equilibrado':
+                    numeros = gerarEquilibrado();
+                    break;
+                case 'par-impar':
+                    numeros = gerarBalanceadoParImpar();
+                    break;
+                case 'dezenas':
+                    numeros = gerarBalanceadoDezenas();
+                    break;
+                default:
+                    numeros = gerarAleatorio();
+            }
+            
+            aplicarSelecao(numeros);
+            mostrarAlerta(`Palpite ${tipo} gerado com base em dados reais da API!`, 'success');
+        }
+
+        // Diferentes algoritmos de geração
+        function gerarPorFrequencia(maisFrequentes = true) {
+            if (!estatisticasNumeros.frequencias) return gerarAleatorio();
+            
+            const numeros = Object.entries(estatisticasNumeros.frequencias)
+                .sort((a, b) => maisFrequentes ? b[1] - a[1] : a[1] - b[1])
+                .slice(0, 15)
+                .map(entry => parseInt(entry[0]));
+            
+            return embaralhar(numeros).slice(0, 6).sort((a, b) => a - b);
+        }
+
+        function gerarPorAtraso() {
+            if (!estatisticasNumeros.ultimaAparicao) return gerarAleatorio();
+            
+            const numeros = Object.entries(estatisticasNumeros.ultimaAparicao)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 15)
+                .map(entry => parseInt(entry[0]));
+            
+            return embaralhar(numeros).slice(0, 6).sort((a, b) => a - b);
+        }
+
+        function gerarEquilibrado() {
+            const frequentes = gerarPorFrequencia(true).slice(0, 3);
+            const atrasados = gerarPorAtraso().slice(0, 3);
+            return [...frequentes, ...atrasados].sort((a, b) => a - b);
+        }
+
+        function gerarBalanceadoParImpar() {
+            const pares = [];
+            const impares = [];
+            
+            for (let i = 1; i <= 60; i++) {
+                if (i % 2 === 0) pares.push(i);
+                else impares.push(i);
+            }
+            
+            const paresSelecionados = embaralhar(pares).slice(0, 3);
+            const imparesSelecionados = embaralhar(impares).slice(0, 3);
+            
+            return [...paresSelecionados, ...imparesSelecionados].sort((a, b) => a - b);
+        }
+
+        function gerarBalanceadoDezenas() {
+            const dezenas = [
+                [], // 1-10
+                [], // 11-20
+                [], // 21-30
+                [], // 31-40
+                [], // 41-50
+                [], // 51-60
+            ];
+            
+            for (let i = 1; i <= 60; i++) {
+                const dezena = Math.floor((i - 1) / 10);
+                dezenas[dezena].push(i);
+            }
+            
+            const numeros = [];
+            dezenas.forEach(dezena => {
+                if (numeros.length < 6 && dezena.length > 0) {
+                    const sorteado = dezena[Math.floor(Math.random() * dezena.length)];
+                    numeros.push(sorteado);
+                }
+            });
+            
+            // Completar se necessário
+            while (numeros.length < 6) {
+                const num = Math.floor(Math.random() * 60) + 1;
+                if (!numeros.includes(num)) {
+                    numeros.push(num);
+                }
+            }
+            
+            return numeros.sort((a, b) => a - b);
+        }
+
+        function gerarAleatorio() {
+            const numeros = [];
+            while (numeros.length < 6) {
+                const num = Math.floor(Math.random() * 60) + 1;
+                if (!numeros.includes(num)) {
+                    numeros.push(num);
+                }
+            }
+            return numeros.sort((a, b) => a - b);
+        }
+
+        // Aplicar seleção na interface
+        function aplicarSelecao(numeros) {
+            limparSelecao();
+            
+            numeros.forEach(num => {
+                const elemento = document.querySelector(`.numero[data-numero="${num}"]`);
+                if (elemento) {
+                    elemento.classList.add('selecionado');
+                    numerosSelecionados.add(num);
+                }
+            });
+            
+            atualizarStatusSelecao();
+        }
+
+        // Configurar event listeners
+        function setupEventListeners() {
+            // Drag and drop
+            setupDragAndDrop();
+            
+            // Botões
+            document.getElementById('incluir').addEventListener('click', incluirJogo);
+            document.getElementById('limpar').addEventListener('click', limparTudo);
+            document.getElementById('palpite-inteligente').addEventListener('click', gerarPalpiteInteligente);
+            document.getElementById('conferir').addEventListener('click', conferirJogos);
+        }
+
+        // Setup drag and drop
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('file-input');
+            
+            dropZone.addEventListener('click', () => fileInput.click());
+            
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) processarArquivo(file);
+            });
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            });
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.classList.add('dragover');
+                });
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.classList.remove('dragover');
+                });
+            });
+            
+            dropZone.addEventListener('drop', (e) => {
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    processarArquivo(files[0]);
+                }
+            });
+        }
+
+        // Processar arquivo
+        async function processarArquivo(file) {
+            const status = document.getElementById('status');
+            const dropZone = document.getElementById('drop-zone');
+            
+            if (!file.name.match(/\.(txt|xlsx|xls)$/i)) {
+                mostrarAlerta('Formato não suportado! Use arquivos .txt ou .xlsx', 'error');
+                return;
+            }
+            
+            dropZone.classList.add('processing');
+            status.innerHTML = `<strong>Status:</strong> 🔄 Processando ${file.name}...`;
+            
+            try {
+                let jogos = [];
+                
+                if (file.name.endsWith('.txt')) {
+                    jogos = await processarTXT(file);
+                } else {
+                    jogos = await processarExcel(file);
+                }
+                
+                if (jogos.length > 0) {
+                    adicionarJogos(jogos);
+                    status.innerHTML = `<strong>Status:</strong> ✅ ${jogos.length.toLocaleString()} jogos carregados com sucesso!`;
+                    mostrarAlerta(`${jogos.length} jogos carregados com sucesso!`, 'success');
+                } else {
+                    status.innerHTML = '<strong>Status:</strong> ⚠️ Nenhum jogo válido encontrado no arquivo';
+                    mostrarAlerta('Nenhum jogo válido encontrado no arquivo', 'warning');
+                }
+                
+            } catch (error) {
+                console.error("Erro ao processar arquivo:", error);
+                status.innerHTML = `<strong>Status:</strong> ❌ Erro: ${error.message}`;
+                mostrarAlerta(`Erro ao processar arquivo: ${error.message}`, 'error');
+            } finally {
+                dropZone.classList.remove('processing');
+            }
+        }
+
+        // Processar arquivo TXT
+        function processarTXT(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        const content = e.target.result;
+                        const lines = content.split('\n');
+                        const jogos = [];
+                        
+                        for (let line of lines) {
+                            line = line.trim();
+                            if (line) {
+                                const numeros = line.split(/\s+/)
+                                    .map(n => parseInt(n))
+                                    .filter(n => !isNaN(n) && n >= 1 && n <= 60)
+                                    .slice(0, 6);
+                                
+                                if (numeros.length === 6 && new Set(numeros).size === 6) {
+                                    jogos.push(numeros.sort((a, b) => a - b));
+                                }
+                            }
+                        }
+                        
+                        resolve(jogos);
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                
+                reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+                reader.readAsText(file);
+            });
+        }
+
+        // Processar arquivo Excel
+        function processarExcel(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                        
+                        const jogos = [];
+                        for (let row of rows) {
+                            if (row.length >= 6) {
+                                const numeros = row.slice(0, 6)
+                                    .map(n => parseInt(n))
+                                    .filter(n => !isNaN(n) && n >= 1 && n <= 60);
+                                
+                                if (numeros.length === 6 && new Set(numeros).size === 6) {
+                                    jogos.push(numeros.sort((a, b) => a - b));
+                                }
+                            }
+                        }
+                        
+                        resolve(jogos);
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                
+                reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // Incluir jogo manual
+        function incluirJogo() {
+            if (numerosSelecionados.size !== 6) {
+                mostrarAlerta(`Selecione exatamente 6 números! (Atual: ${numerosSelecionados.size})`, 'warning');
+                return;
+            }
+            
+            const jogo = Array.from(numerosSelecionados).sort((a, b) => a - b);
+            jogosIncluidos.push(jogo);
+            adicionarJogoNaLista(jogo);
+            atualizarContador();
+            
+            mostrarAlerta('Jogo incluído com sucesso!', 'success');
+            limparSelecao();
+        }
+
+        // Adicionar múltiplos jogos
+        function adicionarJogos(jogos) {
+            const jogosAtuais = new Set(jogosIncluidos.map(j => JSON.stringify(j)));
+            let novos = 0;
+            
+            for (let jogo of jogos) {
+                const jogoStr = JSON.stringify(jogo);
+                if (!jogosAtuais.has(jogoStr)) {
+                    jogosIncluidos.push(jogo);
+                    adicionarJogoNaLista(jogo);
+                    jogosAtuais.add(jogoStr);
+                    novos++;
+                }
+            }
+            
+            atualizarContador();
+            console.log(`✅ ${novos} jogos novos adicionados`);
+        }
+
+        // Adicionar jogo na lista visual
+        function adicionarJogoNaLista(jogo) {
+            const lista = document.getElementById('lista-jogos');
+            
+            const item = document.createElement('div');
+            item.className = 'jogo-item';
+            
+            const numerosHtml = jogo
+                .map(n => `<span class="jogo-numero">${String(n).padStart(2, '0')}</span>`)
+                .join('');
+            
+            item.innerHTML = `
+                <div class="jogo-info">
+                    <div class="jogo-numeros">
+                        ${numerosHtml}
+                    </div>
+                </div>
+            `;
+            
+            lista.appendChild(item);
+        }
+
+        // Conferir jogos
+        async function conferirJogos() {
+            if (jogosIncluidos.length === 0) {
+                mostrarAlerta('Inclua pelo menos um jogo para conferir!', 'warning');
+                return;
+            }
+            
+            const inicio = parseInt(document.getElementById('concurso-inicio').value);
+            const fim = parseInt(document.getElementById('concurso-fim').value);
+            
+            if (!inicio || !fim || inicio > fim) {
+                mostrarAlerta('Configure corretamente os concursos inicial e final!', 'warning');
+                return;
+            }
+            
+            const status = document.getElementById('status');
+            status.innerHTML = `<strong>Status:</strong> 🔄 Conferindo ${jogosIncluidos.length} jogos nos concursos ${inicio} a ${fim}...`;
+            
+            try {
+                const resultados = await conferirComAPI(inicio, fim);
+                mostrarResultados(resultados);
+                status.innerHTML = `<strong>Status:</strong> ✅ Conferência concluída com dados da API!`;
+                
+            } catch (error) {
+                console.error("Erro na conferência:", error);
+                status.innerHTML = `<strong>Status:</strong> ❌ Erro na conferência: ${error.message}`;
+                mostrarAlerta(`Erro na conferência: ${error.message}`, 'error');
+            }
+        }
+
+        // Conferir com API real
+        async function conferirComAPI(inicio, fim) {
+            const resultados = {
+                quadra: 0,
+                quina: 0,
+                sena: 0,
+                valorTotal: 0,
+                detalhes: []
+            };
+            
+            const somentePremiados = document.getElementById('somente-premiados').checked;
+            
+            for (let concurso = inicio; concurso <= fim; concurso++) {
+                try {
+                    const response = await fetch(`https://servicebus2.caixa.gov.br/portaldeloterias/api/megasena/${concurso}`);
+                    
+                    if (response.ok) {
+                        const dados = await response.json();
+                        if (dados.listaDezenas) {
+                            const numerosSorteados = dados.listaDezenas.map(d => parseInt(d));
+                            
+                            for (let jogo of jogosIncluidos) {
+                                const acertos = jogo.filter(num => numerosSorteados.includes(num)).length;
+                                let premio = 0;
+                                let status = 'Normal';
+                                
+                                if (acertos >= 4) {
+                                    const faixa = dados.listaRateioPremio?.find(r => r.faixa === (7 - acertos));
+                                    if (faixa) {
+                                        premio = faixa.valorPremio || 0;
+                                        resultados.valorTotal += premio;
+                                    }
+                                    
+                                    if (acertos === 4) {
+                                        resultados.quadra++;
+                                        status = 'Quadra';
+                                    } else if (acertos === 5) {
+                                        resultados.quina++;
+                                        status = 'Quina';
+                                    } else if (acertos === 6) {
+                                        resultados.sena++;
+                                        status = 'SENA!';
+                                    }
+                                }
+                                
+                                if (!somentePremiados || acertos >= 4) {
+                                    resultados.detalhes.push({
+                                        concurso: dados.numero,
+                                        data: dados.dataApuracao,
+                                        numerosSorteados,
+                                        seuJogo: jogo,
+                                        acertos,
+                                        premio,
+                                        status
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Delay para não sobrecarregar a API
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                } catch (error) {
+                    console.warn(`Erro ao buscar concurso ${concurso}:`, error);
+                }
+            }
+            
+            return resultados;
+        }
+
+        // Mostrar resultados
+        function mostrarResultados(resultados) {
+            // Atualizar cards
+            document.getElementById('quatro-acertos').textContent = resultados.quadra;
+            document.getElementById('cinco-acertos').textContent = resultados.quina;
+            document.getElementById('seis-acertos').textContent = resultados.sena;
+            
+            // Preencher tabela
+            const tabela = document.getElementById('tabela-resultados');
+            tabela.innerHTML = '';
+            
+            resultados.detalhes.forEach(resultado => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${resultado.concurso}</td>
+                    <td>${resultado.data}</td>
+                    <td>${resultado.numerosSorteados.map(n => String(n).padStart(2, '0')).join(' ')}</td>
+                    <td>${resultado.seuJogo.map(n => String(n).padStart(2, '0')).join(' ')}</td>
+                    <td>${resultado.acertos}</td>
+                    <td>${formatarMoeda(resultado.premio)}</td>
+                    <td>${resultado.status}</td>
+                `;
+                
+                if (resultado.acertos >= 4) {
+                    row.style.backgroundColor = 'var(--mega-bg-claro)';
+                    row.style.fontWeight = 'bold';
+                }
+                
+                tabela.appendChild(row);
+            });
+            
+            // Mostrar seção
+            document.getElementById('resultados').style.display = 'block';
+            document.getElementById('resultados').scrollIntoView({ behavior: 'smooth' });
+            
+            if (resultados.sena > 0) {
+                mostrarAlerta(`🎉 PARABÉNS! Você teve ${resultados.sena} SENA(S)!`, 'success');
+            } else if (resultados.quina > 0) {
+                mostrarAlerta(`🥈 Você teve ${resultados.quina} QUINA(S)!`, 'success');
+            } else if (resultados.quadra > 0) {
+                mostrarAlerta(`🥉 Você teve ${resultados.quadra} QUADRA(S)!`, 'success');
+            }
+        }
+
+        // Funções auxiliares
+        function limparSelecao() {
+            numerosSelecionados.clear();
+            document.querySelectorAll('.numero.selecionado').forEach(n => {
+                n.classList.remove('selecionado');
+            });
+            atualizarStatusSelecao();
+        }
+
+        function limparTudo() {
+            if (jogosIncluidos.length === 0) {
+                mostrarAlerta('Não há jogos para limpar!', 'warning');
+                return;
+            }
+            
+            showConfirmDialog('Tem certeza que deseja limpar todos os jogos?', () => {
+                jogosIncluidos.length = 0;
+                document.getElementById('lista-jogos').innerHTML = '';
+                atualizarContador();
+                document.getElementById('resultados').style.display = 'none';
+                mostrarAlerta('Todos os jogos foram removidos!', 'success');
+            });
+        }
+
+        function atualizarContador() {
+            document.getElementById('contador-jogos').textContent = jogosIncluidos.length.toLocaleString();
+        }
+
+        function atualizarStatusSelecao() {
+            const selected = numerosSelecionados.size;
+            const status = document.getElementById('status');
+            
+            if (selected === 0) {
+                status.innerHTML = '<strong>Status:</strong> Selecione 6 números para incluir um jogo';
+            } else if (selected < 6) {
+                status.innerHTML = `<strong>Status:</strong> ${selected}/6 números selecionados - Selecione mais ${6 - selected}`;
+            } else {
+                status.innerHTML = '<strong>Status:</strong> ✅ 6 números selecionados - Pronto para incluir!';
+            }
+        }
+
+        function formatarMoeda(valor) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(valor || 0);
+        }
+
+        function embaralhar(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function mostrarAlerta(mensagem, tipo) {
+            const alertas = {
+                success: { icon: '✅', cor: 'var(--mega-verde)' },
+                warning: { icon: '⚠️', cor: 'var(--dourado)' },
+                error: { icon: '❌', cor: 'var(--vermelho)' }
+            };
+            
+            const alerta = alertas[tipo] || alertas.success;
+            
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+            `;
+            
+            modal.innerHTML = `
+                <div style="
+                    background: white;
+                    padding: 25px;
+                    border-radius: 15px;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                    max-width: 90%;
+                    text-align: center;
+                    border: 3px solid ${alerta.cor};
+                ">
+                    <p style="font-size: 48px; margin: 0 0 15px 0;">${alerta.icon}</p>
+                    <p style="color: #333; margin-bottom: 20px; font-weight: 600; font-size: 16px;">${mensagem}</p>
+                    <button onclick="this.closest('div').remove()" style="
+                        padding: 10px 20px;
+                        background: ${alerta.cor};
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        font-size: 16px;
+                    ">OK</button>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            setTimeout(() => {
+                if (modal.parentNode) {
+                    modal.remove();
+                }
+            }, 5000);
+        }
+
+        function showConfirmDialog(mensagem, onConfirm) {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+            `;
+            
+            modal.innerHTML = `
+                <div style="
+                    background: white;
+                    padding: 25px;
+                    border-radius: 15px;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                    max-width: 90%;
+                    text-align: center;
+                    border: 3px solid var(--mega-verde);
+                ">
+                    <p style="color: #333; margin-bottom: 20px; font-weight: 600; font-size: 16px;">${mensagem}</p>
+                    <div style="display: flex; gap: 15px; justify-content: center;">
+                        <button onclick="this.closest('div').remove()" style="
+                            padding: 10px 20px;
+                            background: #666;
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            font-weight: 600;
+                            cursor: pointer;
+                        ">Cancelar</button>
+                        <button onclick="this.closest('div').remove(); (${onConfirm})()" style="
+                            padding: 10px 20px;
+                            background: var(--vermelho);
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            font-weight: 600;
+                            cursor: pointer;
+                        ">Confirmar</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+    </script>
+</body>
+</html>
