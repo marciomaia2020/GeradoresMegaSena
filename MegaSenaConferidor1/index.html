@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conferir Mega-Sena</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'mega': {
+                            50: '#e9fbf4',
+                            100: '#d4f7e9',
+                            200: '#bef4de',
+                            300: '#a8f0d3',
+                            400: '#93ecc8',
+                            500: '#7de8bd',
+                            600: '#67e4b2',
+                            700: '#52e0a7',
+                            800: '#3cdd9c',
+                            900: '#26d991',
+                            950: '#22c383',
+                            1000: '#1fad74',
+                            1050: '#1b9a67', // cor principal
+                            1100: '#178257',
+                            1150: '#136c49',
+                            1200: '#0f573a',
+                            1250: '#0b412c',
+                            1300: '#082b1d',
+                            1350: '#04160f'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .loading {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1b9a67;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div class="container mx-auto px-4 py-6 max-w-6xl">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-mega-1050 to-mega-950 rounded-lg p-6 mb-6 text-white">
+            <h1 class="text-3xl font-bold mb-2">🎯 Conferir Mega-Sena</h1>
+            <p class="text-mega-100">Confira seus jogos e veja quantos acertos você teve nos sorteios!</p>
+        </div>
+
+        <!-- Buscar Concurso -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Buscar Resultado do Concurso</h2>
+            <div class="flex gap-4 mb-4">
+                <input 
+                    type="number" 
+                    id="concursoInput" 
+                    placeholder="Digite o número do concurso" 
+                    class="flex-1 px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-mega-1050 focus:border-mega-1050 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+                <button 
+                    onclick="buscarConcurso()" 
+                    id="buscarBtn"
+                    class="px-6 py-3 bg-mega-1050 text-white rounded-lg hover:bg-mega-1100 transition-colors font-medium"
+                >
+                    Buscar
+                </button>
+            </div>
+            <div id="resultadoConcurso" class="hidden"></div>
+        </div>
+
+        <!-- Filtros e Estatísticas -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Filtros e Estatísticas</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <select id="filtroAcertos" class="px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-mega-1050 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">Todos os jogos</option>
+                    <option value="apenas-premiados">💰 APENAS PREMIADOS</option>
+                    <option value="nao-premiados">🚫 NÃO PREMIADOS</option>
+                    <option value="sorteados">🎯 Jogos Sorteados (1+)</option>
+                    <option value="nao-sorteados">❌ Jogos Não Sorteados (0)</option>
+                    <option value="premiados">🏆 Jogos Premiados (4+)</option>
+                    <option value="0">0 acertos</option>
+                    <option value="1">1 acerto</option>
+                    <option value="2">2 acertos</option>
+                    <option value="3">3 acertos</option>
+                    <option value="4">4 acertos (Quadra)</option>
+                    <option value="5">5 acertos (Quina)</option>
+                    <option value="6">6 acertos (Sena)</option>
+                </select>
+                <select id="filtroOrdem" class="px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-mega-1050 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="acertos-desc">Mais acertos primeiro</option>
+                    <option value="acertos-asc">Menos acertos primeiro</option>
+                    <option value="premio-desc">Maior prêmio primeiro</option>
+                    <option value="jogo-asc">Ordem dos jogos</option>
+                </select>
+                <button 
+                    onclick="aplicarFiltros()" 
+                    class="px-4 py-3 bg-mega-1050 text-white rounded-lg hover:bg-mega-1100 transition-colors font-medium"
+                >
+                    Aplicar Filtros
+                </button>
+            </div>
+            <div id="estatisticas" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+        </div>
+
+        <!-- Lista de Jogos -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Seus Jogos</h2>
+            <div id="listaJogos" class="space-y-4"></div>
+        </div>
+    </div>
+
+    <script>
+        // Dados dos jogos fixos para Mega-Sena (6 números de 1 a 60)
+        const jogosFixos = [
+            [5, 12, 23, 28, 35, 44], [3, 15, 22, 31, 42, 58], [7, 18, 25, 33, 47, 55],
+            [2, 14, 27, 29, 38, 51], [9, 16, 24, 36, 43, 60], [1, 11, 26, 34, 45, 52],
+            [4, 17, 21, 30, 41, 56], [6, 13, 28, 37, 46, 53], [8, 19, 32, 39, 48, 57],
+            [10, 20, 35, 40, 49, 59], [5, 15, 25, 35, 45, 55], [3, 13, 23, 33, 43, 53],
+            [7, 17, 27, 37, 47, 57], [2, 12, 22, 32, 42, 52], [9, 19, 29, 39, 49, 59],
+            [1, 11, 21, 31, 41, 51], [4, 14, 24, 34, 44, 54], [6, 16, 26, 36, 46, 56],
+            [8, 18, 28, 38, 48, 58], [10, 20, 30, 40, 50, 60], [1, 7, 14, 21, 28, 35],
+            [2, 8, 15, 22, 29, 36], [3, 9, 16, 23, 30, 37], [4, 10, 17, 24, 31, 38],
+            [5, 11, 18, 25, 32, 39], [6, 12, 19, 26, 33, 40], [1, 8, 16, 24, 32, 40],
+            [2, 9, 17, 25, 33, 41], [3, 10, 18, 26, 34, 42], [4, 11, 19, 27, 35, 43],
+            [5, 12, 20, 28, 36, 44], [6, 13, 21, 29, 37, 45], [7, 14, 22, 30, 38, 46],
+            [8, 15, 23, 31, 39, 47], [9, 16, 24, 32, 40, 48], [10, 17, 25, 33, 41, 49],
+            [11, 18, 26, 34, 42, 50], [12, 19, 27, 35, 43, 51], [13, 20, 28, 36, 44, 52],
+            [14, 21, 29, 37, 45, 53], [15, 22, 30, 38, 46, 54], [16, 23, 31, 39, 47, 55],
+            [17, 24, 32, 40, 48, 56], [18, 25, 33, 41, 49, 57], [19, 26, 34, 42, 50, 58],
+            [20, 27, 35, 43, 51, 59], [21, 28, 36, 44, 52, 60], [1, 6, 11, 16, 21, 26],
+            [2, 7, 12, 17, 22, 27], [3, 8, 13, 18, 23, 28], [4, 9, 14, 19, 24, 29],
+            [5, 10, 15, 20, 25, 30], [6, 11, 16, 21, 26, 31], [7, 12, 17, 22, 27, 32],
+            [8, 13, 18, 23, 28, 33], [9, 14, 19, 24, 29, 34], [10, 15, 20, 25, 30, 35],
+            [11, 16, 21, 26, 31, 36], [12, 17, 22, 27, 32, 37], [13, 18, 23, 28, 33, 38],
+            [14, 19, 24, 29, 34, 39], [15, 20, 25, 30, 35, 40], [16, 21, 26, 31, 36, 41],
+            [17, 22, 27, 32, 37, 42], [18, 23, 28, 33, 38, 43], [19, 24, 29, 34, 39, 44],
+            [20, 25, 30, 35, 40, 45], [21, 26, 31, 36, 41, 46], [22, 27, 32, 37, 42, 47],
+            [23, 28, 33, 38, 43, 48], [24, 29, 34, 39, 44, 49], [25, 30, 35, 40, 45, 50],
+            [26, 31, 36, 41, 46, 51], [27, 32, 37, 42, 47, 52], [28, 33, 38, 43, 48, 53],
+            [29, 34, 39, 44, 49, 54], [30, 35, 40, 45, 50, 55], [31, 36, 41, 46, 51, 56],
+            [32, 37, 42, 47, 52, 57], [33, 38, 43, 48, 53, 58], [34, 39, 44, 49, 54, 59],
+            [35, 40, 45, 50, 55, 60], [1, 10, 20, 30, 40, 50], [2, 11, 21, 31, 41, 51],
+            [3, 12, 22, 32, 42, 52], [4, 13, 23, 33, 43, 53], [5, 14, 24, 34, 44, 54],
+            [6, 15, 25, 35, 45, 55], [7, 16, 26, 36, 46, 56], [8, 17, 27, 37, 47, 57],
+            [9, 18, 28, 38, 48, 58], [1, 5, 9, 13, 17, 21], [2, 6, 10, 14, 18, 22],
+            [3, 7, 11, 15, 19, 23], [4, 8, 12, 16, 20, 24], [5, 9, 13, 17, 21, 25],
+            [6, 10, 14, 18, 22, 26], [7, 11, 15, 19, 23, 27], [8, 12, 16, 20, 24, 28],
+            [9, 13, 17, 21, 25, 29], [10, 14, 18, 22, 26, 30], [11, 15, 19, 23, 27, 31],
+            [12, 16, 20, 24, 28, 32], [13, 17, 21, 25, 29, 33], [14, 18, 22, 26, 30, 34],
+            [15, 19, 23, 27, 31, 35], [16, 20, 24, 28, 32, 36], [17, 21, 25, 29, 33, 37],
+            [18, 22, 26, 30, 34, 38], [19, 23, 27, 31, 35, 39], [20, 24, 28, 32, 36, 40]
+        ];
+
+        let resultadoAtual = null;
+        let jogosAnalisados = [];
+        let ordemCrescente = false;
+
+        // Configuração para dark mode
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+
+        async function buscarConcurso() {
+            const concurso = document.getElementById('concursoInput').value;
+            if (!concurso) {
+                mostrarAlerta('Digite o número do concurso', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('buscarBtn');
+            const original = btn.innerHTML;
+            btn.innerHTML = '<div class="loading"></div>';
+            btn.disabled = true;
+
+            try {
+                // Tentar múltiplas abordagens para contornar CORS
+                let dadosObtidos = null;
+                
+                // Abordagem 1: API direta
+                try {
+                    const response = await fetch(`https://servicebus2.caixa.gov.br/portaldeloterias/api/megasena/${concurso}`);
+                    if (response.ok) {
+                        dadosObtidos = await response.json();
+                    }
+                } catch (corsError) {
+                    console.warn("CORS bloqueou API direta:", corsError.message);
+                }
+                
+                // Abordagem 2: Proxy público
+                if (!dadosObtidos) {
+                    try {
+                        const proxyUrl = 'https://api.allorigins.win/get?url=' + 
+                            encodeURIComponent(`https://servicebus2.caixa.gov.br/portaldeloterias/api/megasena/${concurso}`);
+                        const response = await fetch(proxyUrl);
+                        if (response.ok) {
+                            const data = await response.json();
+                            dadosObtidos = JSON.parse(data.contents);
+                        }
+                    } catch (proxyError) {
+                        console.warn("Proxy falhou:", proxyError.message);
+                    }
+                }
+                
+                if (dadosObtidos && dadosObtidos.numero && dadosObtidos.listaDezenas) {
+                    resultadoAtual = dadosObtidos;
+                    exibirResultado(dadosObtidos);
+                    analisarJogos(dadosObtidos);
+                } else {
+                    throw new Error("Dados do concurso não encontrados ou inválidos");
+                }
+                
+            } catch (error) {
+                document.getElementById('resultadoConcurso').innerHTML = `
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                        Erro ao buscar concurso: ${error.message}
+                        <br><small>Verifique se o número do concurso está correto e tente novamente.</small>
+                    </div>
+                `;
+                document.getElementById('resultadoConcurso').classList.remove('hidden');
+            } finally {
+                btn.innerHTML = original;
+                btn.disabled = false;
+            }
+        }
+
+        function exibirResultado(data) {
+            const container = document.getElementById('resultadoConcurso');
+            const dezenas = data.dezenasSorteadasOrdemSorteio || data.listaDezenas || [];
+            
+            // Aplicar ordem preferida do usuário
+            let numerosExibir = [...dezenas];
+            if (ordemCrescente) {
+                numerosExibir.sort((a, b) => parseInt(a) - parseInt(b));
+            }
+            
+            container.innerHTML = `
+                <div class="bg-mega-50 dark:bg-mega-1200 border border-mega-200 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-lg font-semibold text-mega-1100 dark:text-mega-200">
+                            Concurso ${data.numero} - ${data.dataApuracao}
+                        </h3>
+                        <button 
+                            onclick="toggleOrdemNumeros()" 
+                            id="btnOrdem"
+                            class="px-3 py-1 bg-mega-1050 text-white rounded-lg hover:bg-mega-1100 transition-colors text-sm font-medium"
+                        >
+                            ${ordemCrescente ? '🔄 Ordem Sorteio' : '🔄 Ordem Crescente'}
+                        </button>
+                    </div>
+                    <div id="numerosResultado" class="flex flex-wrap gap-2 mb-3">
+                        ${numerosExibir.map(num => `
+                            <span class="bg-mega-1050 text-white px-3 py-1 rounded-full font-bold text-sm">
+                                ${num.toString().padStart(2, '0')}
+                            </span>
+                        `).join('')}
+                    </div>
+                    <div class="text-sm text-gray-600 dark:text-gray-300 grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <p><strong>Valor Estimado Próximo:</strong> ${data.valorEstimadoProximoConcurso ? 
+                            'R$ ' + parseFloat(data.valorEstimadoProximoConcurso).toLocaleString('pt-BR', {minimumFractionDigits: 2}) : 
+                            'Não informado'}</p>
+                        <p><strong>Acumulado:</strong> ${data.acumulado ? 'Sim' : 'Não'}</p>
+                        ${data.listaRateioPremio ? `
+                            <div class="col-span-1 md:col-span-2 mt-2">
+                                <strong>Premiação:</strong>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mt-1 text-xs">
+                                    ${data.listaRateioPremio.map(premio => `
+                                        <div class="bg-green-100 dark:bg-green-800 p-2 rounded">
+                                            <div class="font-bold">${premio.descricaoFaixa}</div>
+                                            <div>${premio.numeroDeGanhadores} ganhador${premio.numeroDeGanhadores !== 1 ? 'es' : ''}</div>
+                                            <div class="text-green-700 dark:text-green-200">R$ ${parseFloat(premio.valorPremio).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            container.classList.remove('hidden');
+        }
+
+        function toggleOrdemNumeros() {
+            if (!resultadoAtual) return;
+            
+            const dezenas = resultadoAtual.dezenasSorteadasOrdemSorteio || resultadoAtual.listaDezenas || [];
+            const btnOrdem = document.getElementById('btnOrdem');
+            const numerosContainer = document.getElementById('numerosResultado');
+            
+            ordemCrescente = !ordemCrescente;
+            
+            let numerosExibir = [...dezenas];
+            if (ordemCrescente) {
+                numerosExibir.sort((a, b) => parseInt(a) - parseInt(b));
+                btnOrdem.innerHTML = '🔄 Ordem Sorteio';
+            } else {
+                btnOrdem.innerHTML = '🔄 Ordem Crescente';
+            }
+            
+            numerosContainer.innerHTML = `
+                ${numerosExibir.map(num => `
+                    <span class="bg-mega-1050 text-white px-3 py-1 rounded-full font-bold text-sm">
+                        ${num.toString().padStart(2, '0')}
+                    </span>
+                `).join('')}
+            `;
+        }
+
+        function analisarJogos(resultado) {
+            const dezenas = resultado.dezenasSorteadasOrdemSorteio || resultado.listaDezenas || [];
+            
+            // Converter dezenas para números se vierem como strings
+            const dezenasNumeros = dezenas.map(d => parseInt(d));
+            
+            console.log('Dezenas sorteadas:', dezenasNumeros);
+            
+            jogosAnalisados = jogosFixos.map((jogo, index) => {
+                const numerosAcertados = jogo.filter(num => dezenasNumeros.includes(num));
+                const acertos = numerosAcertados.length;
+                
+                // Calcular premiação baseada nos dados reais se disponível
+                const premiacao = calcularPremiacao(acertos, resultado.listaRateioPremio);
+                
+                return {
+                    id: index + 1,
+                    numeros: jogo,
+                    acertos,
+                    numerosAcertados,
+                    premiacao
+                };
+            });
+            
+            // Ordenar do maior para o menor número de acertos
+            jogosAnalisados.sort((a, b) => b.acertos - a.acertos);
+            
+            exibirJogos();
+            exibirEstatisticas();
+        }
+
+        function calcularPremiacao(acertos, listaRateioPremio) {
+            if (acertos < 4) return 0;
+            
+            if (listaRateioPremio) {
+                // Usar valores reais da API
+                const faixa = listaRateioPremio.find(premio => {
+                    if (acertos === 4) return premio.faixa === 3;
+                    if (acertos === 5) return premio.faixa === 2;
+                    if (acertos === 6) return premio.faixa === 1;
+                    return false;
+                });
+                return faixa ? parseFloat(faixa.valorPremio) : 0;
+            } else {
+                // Valores aproximados da Mega-Sena
+                if (acertos === 4) return 1000.00;      // Quadra
+                else if (acertos === 5) return 50000.00; // Quina
+                else if (acertos === 6) return 50000000.00; // Sena
+            }
+            
+            return 0;
+        }
+
+        function exibirJogos() {
+            const container = document.getElementById('listaJogos');
+            
+            container.innerHTML = jogosAnalisados.map(jogo => `
+                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 ${jogo.acertos >= 4 ? 'bg-green-50 dark:bg-green-900 border-green-200' : jogo.acertos > 0 ? 'bg-yellow-50 dark:bg-yellow-900 border-yellow-200' : ''}">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-semibold text-gray-800 dark:text-white">Jogo ${jogo.id} - Concurso ${resultadoAtual.numero}</h4>
+                        <span class="px-2 py-1 rounded text-sm font-bold ${
+                            jogo.acertos === 6 ? 'bg-green-500 text-white' :
+                            jogo.acertos === 5 ? 'bg-blue-500 text-white' :
+                            jogo.acertos === 4 ? 'bg-orange-500 text-white' :
+                            jogo.acertos > 0 ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                        }">
+                            ${jogo.acertos === 6 ? '🏆 SENA!' :
+                              jogo.acertos === 5 ? '🥈 QUINA' :
+                              jogo.acertos === 4 ? '🥉 QUADRA' :
+                              `${jogo.acertos} acerto${jogo.acertos !== 1 ? 's' : ''}`}
+                        </span>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mb-3">
+                        ${jogo.numeros.map(num => `
+                            <span class="px-2 py-1 rounded text-sm font-bold ${
+                                jogo.numerosAcertados.includes(num) ? 
+                                'bg-mega-1050 text-white' : 
+                                'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                            }">
+                                ${num.toString().padStart(2, '0')}
+                            </span>
+                        `).join('')}
+                    </div>
+                    ${jogo.premiacao > 0 ? `
+                        <div class="bg-green-100 dark:bg-green-800 p-2 rounded">
+                            <div class="text-sm font-bold text-green-700 dark:text-green-200">
+                                💰 Premiação: R$ ${jogo.premiacao.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function exibirEstatisticas() {
+            if (jogosAnalisados.length === 0) return;
+            
+            const container = document.getElementById('estatisticas');
+            
+            const totalJogos = jogosAnalisados.length;
+            const jogosPremiados = jogosAnalisados.filter(j => j.acertos >= 4).length;
+            const senas = jogosAnalisados.filter(j => j.acertos === 6).length;
+            const quinas = jogosAnalisados.filter(j => j.acertos === 5).length;
+            const quadras = jogosAnalisados.filter(j => j.acertos === 4).length;
+            const totalPremiacao = jogosAnalisados.reduce((total, jogo) => total + jogo.premiacao, 0);
+            
+            container.innerHTML = `
+                <div class="bg-green-100 dark:bg-green-800 p-4 rounded-lg text-center">
+                    <div class="text-2xl font-bold text-green-800 dark:text-green-200">R$ ${totalPremiacao.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+                    <div class="text-sm text-green-600 dark:text-green-300">Total em Premiação</div>
+                </div>
+                <div class="bg-mega-100 dark:bg-mega-1200 p-4 rounded-lg text-center">
+                    <div class="text-2xl font-bold text-mega-1100 dark:text-mega-200">${jogosPremiados}</div>
+                    <div class="text-sm text-mega-1050 dark:text-mega-300">Jogos Premiados</div>
+                </div>
+                <div class="bg-blue-100 dark:bg-blue-800 p-4 rounded-lg text-center">
+                    <div class="text-2xl font-bold text-blue-800 dark:text-blue-200">${senas}/${quinas}/${quadras}</div>
+                    <div class="text-sm text-blue-600 dark:text-blue-300">Sena/Quina/Quadra</div>
+                </div>
+                <div class="bg-orange-100 dark:bg-orange-800 p-4 rounded-lg text-center">
+                    <div class="text-2xl font-bold text-orange-800 dark:text-orange-200">${Math.max(...jogosAnalisados.map(j => j.acertos))}</div>
+                    <div class="text-sm text-orange-600 dark:text-orange-300">Maior Acerto</div>
+                </div>
+            `;
+        }
+
+        function aplicarFiltros() {
+            const filtroAcertos = document.getElementById('filtroAcertos').value;
+            const filtroOrdem = document.getElementById('filtroOrdem').value;
+            
+            let jogosFiltrados = [...jogosAnalisados];
+            
+            // Aplicar filtro de acertos
+            if (filtroAcertos !== '') {
+                if (filtroAcertos === 'apenas-premiados') {
+                    jogosFiltrados = jogosFiltrados.filter(jogo => jogo.premiacao > 0);
+                } else if (filtroAcertos === 'nao-premiados') {
+                    jogosFiltrados = jogosFiltrados.filter(jogo => jogo.premiacao === 0);
+                } else if (filtroAcertos === 'premiados') {
+                    jogosFiltrados = jogosFiltrados.filter(jogo => jogo.acertos >= 4);
+                } else if (filtroAcertos === 'sorteados') {
+                    jogosFiltrados = jogosFiltrados.filter(jogo => jogo.acertos >= 1);
+                } else if (filtroAcertos === 'nao-sorteados') {
+                    jogosFiltrados = jogosFiltrados.filter(jogo => jogo.acertos === 0);
+                } else {
+                    jogosFiltrados = jogosFiltrados.filter(jogo => jogo.acertos == parseInt(filtroAcertos));
+                }
+            }
+            
+            // Aplicar ordenação
+            switch (filtroOrdem) {
+                case 'acertos-desc':
+                    jogosFiltrados.sort((a, b) => b.acertos - a.acertos);
+                    break;
+                case 'acertos-asc':
+                    jogosFiltrados.sort((a, b) => a.acertos - b.acertos);
+                    break;
+                case 'premio-desc':
+                    jogosFiltrados.sort((a, b) => b.premiacao - a.premiacao);
+                    break;
+                case 'jogo-asc':
+                    jogosFiltrados.sort((a, b) => a.id - b.id);
+                    break;
+            }
+            
+            // Atualizar exibição
+            const container = document.getElementById('listaJogos');
+            container.innerHTML = jogosFiltrados.map(jogo => `
+                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 ${jogo.acertos >= 4 ? 'bg-green-50 dark:bg-green-900 border-green-200' : jogo.acertos > 0 ? 'bg-yellow-50 dark:bg-yellow-900 border-yellow-200' : ''}">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-semibold text-gray-800 dark:text-white">Jogo ${jogo.id}</h4>
+                        <span class="px-2 py-1 rounded text-sm font-bold ${
+                            jogo.acertos === 6 ? 'bg-green-500 text-white' :
+                            jogo.acertos === 5 ? 'bg-blue-500 text-white' :
+                            jogo.acertos === 4 ? 'bg-orange-500 text-white' :
+                            jogo.acertos > 0 ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                        }">
+                            ${jogo.acertos === 6 ? '🏆 SENA!' :
+                              jogo.acertos === 5 ? '🥈 QUINA' :
+                              jogo.acertos === 4 ? '🥉 QUADRA' :
+                              `${jogo.acertos} acerto${jogo.acertos !== 1 ? 's' : ''}`}
+                        </span>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mb-2">
+                        ${jogo.numeros.map(num => `
+                            <span class="px-2 py-1 rounded text-sm font-bold ${
+                                jogo.numerosAcertados.includes(num) ? 
+                                'bg-mega-1050 text-white' : 
+                                'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                            }">
+                                ${num.toString().padStart(2, '0')}
+                            </span>
+                        `).join('')}
+                    </div>
+                    ${jogo.premiacao > 0 ? `
+                        <div class="bg-green-100 dark:bg-green-800 p-2 rounded">
+                            <div class="text-sm font-bold text-green-700 dark:text-green-200">
+                                💰 Premiação: R$ ${jogo.premiacao.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+            
+            // Atualizar estatísticas dos jogos filtrados
+            if (jogosFiltrados.length > 0) {
+                const estatContainer = document.getElementById('estatisticas');
+                const totalFiltrados = jogosFiltrados.length;
+                const premiadosFiltrados = jogosFiltrados.filter(j => j.acertos >= 4).length;
+                const senasFiltradas = jogosFiltrados.filter(j => j.acertos === 6).length;
+                const quinasFiltradas = jogosFiltrados.filter(j => j.acertos === 5).length;
+                const quadrasFiltradas = jogosFiltrados.filter(j => j.acertos === 4).length;
+                const totalPremiacaoFiltrada = jogosFiltrados.reduce((total, jogo) => total + jogo.premiacao, 0);
+                
+                estatContainer.innerHTML = `
+                    <div class="bg-green-100 dark:bg-green-800 p-4 rounded-lg text-center">
+                        <div class="text-2xl font-bold text-green-800 dark:text-green-200">R$ ${totalPremiacaoFiltrada.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+                        <div class="text-sm text-green-600 dark:text-green-300">Total Filtrado</div>
+                    </div>
+                    <div class="bg-mega-100 dark:bg-mega-1200 p-4 rounded-lg text-center">
+                        <div class="text-2xl font-bold text-mega-1100 dark:text-mega-200">${totalFiltrados}</div>
+                        <div class="text-sm text-mega-1050 dark:text-mega-300">Jogos Filtrados</div>
+                    </div>
+                    <div class="bg-blue-100 dark:bg-blue-800 p-4 rounded-lg text-center">
+                        <div class="text-2xl font-bold text-blue-800 dark:text-blue-200">${senasFiltradas}/${quinasFiltradas}/${quadrasFiltradas}</div>
+                        <div class="text-sm text-blue-600 dark:text-blue-300">Sena/Quina/Quadra</div>
+                    </div>
+                    <div class="bg-orange-100 dark:bg-orange-800 p-4 rounded-lg text-center">
+                        <div class="text-2xl font-bold text-orange-800 dark:text-orange-200">${premiadosFiltrados}</div>
+                        <div class="text-sm text-orange-600 dark:text-orange-300">Premiados</div>
+                    </div>
+                `;
+            }
+        }
+
+        function mostrarAlerta(mensagem, tipo) {
+            const alertas = {
+                success: { icon: '✅', cor: '#1b9a67' },
+                warning: { icon: '⚠️', cor: '#f59e0b' },
+                error: { icon: '❌', cor: '#ef4444' }
+            };
+            
+            const alerta = alertas[tipo] || alertas.success;
+            
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+            `;
+            
+            modal.innerHTML = `
+                <div style="
+                    background: white;
+                    padding: 25px;
+                    border-radius: 15px;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                    max-width: 90%;
+                    text-align: center;
+                    border: 3px solid ${alerta.cor};
+                ">
+                    <p style="font-size: 48px; margin: 0 0 15px 0;">${alerta.icon}</p>
+                    <p style="color: #333; margin-bottom: 20px; font-weight: 600; font-size: 16px;">${mensagem}</p>
+                    <button onclick="this.closest('div').remove()" style="
+                        padding: 10px 20px;
+                        background: ${alerta.cor};
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        font-size: 16px;
+                    ">OK</button>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            setTimeout(() => {
+                if (modal.parentNode) {
+                    modal.remove();
+                }
+            }, 5000);
+        }
+
+        // Permitir busca com Enter
+        document.getElementById('concursoInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                buscarConcurso();
+            }
+        });
+
+        // Exibir jogos inicialmente (sem análise)
+        document.getElementById('listaJogos').innerHTML = jogosFixos.map((jogo, index) => `
+            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div class="flex justify-between items-center mb-2">
+                    <h4 class="font-semibold text-gray-800 dark:text-white">Jogo ${index + 1}</h4>
+                    <span class="px-2 py-1 rounded text-sm font-bold bg-gray-100 text-gray-800">
+                        Aguardando resultado
+                    </span>
+                </div>
+                <div class="flex flex-wrap gap-2 mb-2">
+                    ${jogo.map(num => `
+                        <span class="px-2 py-1 rounded text-sm font-bold bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                            ${num.toString().padStart(2, '0')}
+                        </span>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+    </script>
+</body>
+</html>
